@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
 import { magicLink } from 'better-auth/plugins';
+import { sendMagicLinkEmail } from './email/sendEmail';
 // If your Prisma file is located elsewhere, you can change the path
 
 const prisma = new PrismaClient();
@@ -21,6 +22,7 @@ export const auth = betterAuth({
 		magicLink({
 			sendMagicLink: async ({ email, token, url }, request) => {
 				// send email to user
+				await sendMagicLinkEmail(email, url, { email });
 			},
 		}),
 	],
