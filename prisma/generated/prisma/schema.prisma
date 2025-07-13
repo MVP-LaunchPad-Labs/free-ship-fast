@@ -20,8 +20,11 @@ model User {
   email         String
   emailVerified Boolean
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
+  createdAt     DateTime  @default(now())
+  has_access    Boolean   @default(false)
+  price_id      String?
+  customer_id   String?
+  updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
 

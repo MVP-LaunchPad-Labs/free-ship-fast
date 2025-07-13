@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
+import ButtonCheckout from '@/components/buttonCheckout';
+import config from '@/config';
 
 export default function HomePage() {
 	const { data: session } = authClient.useSession();
@@ -284,16 +286,7 @@ export default function HomePage() {
 										</li>
 									))}
 								</ul>
-								<Button
-									className='mt-8 w-full'
-									size='lg'
-									asChild
-								>
-									<Link href='/purchase'>
-										Get instant access
-										<ArrowRight className='ml-2 h-4 w-4' />
-									</Link>
-								</Button>
+								<ButtonCheckout priceId={config.stripe.plans[0].priceId} />
 							</div>
 						</div>
 					</div>

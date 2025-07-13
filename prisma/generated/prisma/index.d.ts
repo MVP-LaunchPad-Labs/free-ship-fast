@@ -1198,6 +1198,9 @@ export namespace Prisma {
     emailVerified: boolean | null
     image: string | null
     createdAt: Date | null
+    has_access: boolean | null
+    price_id: string | null
+    customer_id: string | null
     updatedAt: Date | null
   }
 
@@ -1208,6 +1211,9 @@ export namespace Prisma {
     emailVerified: boolean | null
     image: string | null
     createdAt: Date | null
+    has_access: boolean | null
+    price_id: string | null
+    customer_id: string | null
     updatedAt: Date | null
   }
 
@@ -1218,6 +1224,9 @@ export namespace Prisma {
     emailVerified: number
     image: number
     createdAt: number
+    has_access: number
+    price_id: number
+    customer_id: number
     updatedAt: number
     _all: number
   }
@@ -1230,6 +1239,9 @@ export namespace Prisma {
     emailVerified?: true
     image?: true
     createdAt?: true
+    has_access?: true
+    price_id?: true
+    customer_id?: true
     updatedAt?: true
   }
 
@@ -1240,6 +1252,9 @@ export namespace Prisma {
     emailVerified?: true
     image?: true
     createdAt?: true
+    has_access?: true
+    price_id?: true
+    customer_id?: true
     updatedAt?: true
   }
 
@@ -1250,6 +1265,9 @@ export namespace Prisma {
     emailVerified?: true
     image?: true
     createdAt?: true
+    has_access?: true
+    price_id?: true
+    customer_id?: true
     updatedAt?: true
     _all?: true
   }
@@ -1333,6 +1351,9 @@ export namespace Prisma {
     emailVerified: boolean
     image: string | null
     createdAt: Date
+    has_access: boolean
+    price_id: string | null
+    customer_id: string | null
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
@@ -1360,6 +1381,9 @@ export namespace Prisma {
     emailVerified?: boolean
     image?: boolean
     createdAt?: boolean
+    has_access?: boolean
+    price_id?: boolean
+    customer_id?: boolean
     updatedAt?: boolean
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     accounts?: boolean | User$accountsArgs<ExtArgs>
@@ -1373,6 +1397,9 @@ export namespace Prisma {
     emailVerified?: boolean
     image?: boolean
     createdAt?: boolean
+    has_access?: boolean
+    price_id?: boolean
+    customer_id?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
 
@@ -1383,6 +1410,9 @@ export namespace Prisma {
     emailVerified?: boolean
     image?: boolean
     createdAt?: boolean
+    has_access?: boolean
+    price_id?: boolean
+    customer_id?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
 
@@ -1393,10 +1423,13 @@ export namespace Prisma {
     emailVerified?: boolean
     image?: boolean
     createdAt?: boolean
+    has_access?: boolean
+    price_id?: boolean
+    customer_id?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "has_access" | "price_id" | "customer_id" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     accounts?: boolean | User$accountsArgs<ExtArgs>
@@ -1418,6 +1451,9 @@ export namespace Prisma {
       emailVerified: boolean
       image: string | null
       createdAt: Date
+      has_access: boolean
+      price_id: string | null
+      customer_id: string | null
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
     composites: {}
@@ -1850,6 +1886,9 @@ export namespace Prisma {
     readonly emailVerified: FieldRef<"User", 'Boolean'>
     readonly image: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
+    readonly has_access: FieldRef<"User", 'Boolean'>
+    readonly price_id: FieldRef<"User", 'String'>
+    readonly customer_id: FieldRef<"User", 'String'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
     
@@ -5593,6 +5632,9 @@ export namespace Prisma {
     emailVerified: 'emailVerified',
     image: 'image',
     createdAt: 'createdAt',
+    has_access: 'has_access',
+    price_id: 'price_id',
+    customer_id: 'customer_id',
     updatedAt: 'updatedAt'
   };
 
@@ -5735,6 +5777,9 @@ export namespace Prisma {
     emailVerified?: BoolFilter<"User"> | boolean
     image?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
+    has_access?: BoolFilter<"User"> | boolean
+    price_id?: StringNullableFilter<"User"> | string | null
+    customer_id?: StringNullableFilter<"User"> | string | null
     updatedAt?: DateTimeFilter<"User"> | Date | string
     sessions?: SessionListRelationFilter
     accounts?: AccountListRelationFilter
@@ -5747,6 +5792,9 @@ export namespace Prisma {
     emailVerified?: SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    has_access?: SortOrder
+    price_id?: SortOrderInput | SortOrder
+    customer_id?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
     accounts?: AccountOrderByRelationAggregateInput
@@ -5762,6 +5810,9 @@ export namespace Prisma {
     emailVerified?: BoolFilter<"User"> | boolean
     image?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
+    has_access?: BoolFilter<"User"> | boolean
+    price_id?: StringNullableFilter<"User"> | string | null
+    customer_id?: StringNullableFilter<"User"> | string | null
     updatedAt?: DateTimeFilter<"User"> | Date | string
     sessions?: SessionListRelationFilter
     accounts?: AccountListRelationFilter
@@ -5774,6 +5825,9 @@ export namespace Prisma {
     emailVerified?: SortOrder
     image?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    has_access?: SortOrder
+    price_id?: SortOrderInput | SortOrder
+    customer_id?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
@@ -5790,6 +5844,9 @@ export namespace Prisma {
     emailVerified?: BoolWithAggregatesFilter<"User"> | boolean
     image?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
+    has_access?: BoolWithAggregatesFilter<"User"> | boolean
+    price_id?: StringNullableWithAggregatesFilter<"User"> | string | null
+    customer_id?: StringNullableWithAggregatesFilter<"User"> | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
 
@@ -6021,8 +6078,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
     accounts?: AccountCreateNestedManyWithoutUserInput
   }
@@ -6033,8 +6093,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
   }
@@ -6046,6 +6109,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -6058,6 +6124,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -6069,8 +6138,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
   }
 
   export type UserUpdateManyMutationInput = {
@@ -6080,6 +6152,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6090,6 +6165,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6421,6 +6499,9 @@ export namespace Prisma {
     emailVerified?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    has_access?: SortOrder
+    price_id?: SortOrder
+    customer_id?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -6431,6 +6512,9 @@ export namespace Prisma {
     emailVerified?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    has_access?: SortOrder
+    price_id?: SortOrder
+    customer_id?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -6441,6 +6525,9 @@ export namespace Prisma {
     emailVerified?: SortOrder
     image?: SortOrder
     createdAt?: SortOrder
+    has_access?: SortOrder
+    price_id?: SortOrder
+    customer_id?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -7060,8 +7147,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
   }
 
@@ -7071,8 +7161,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -7099,6 +7192,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
   }
@@ -7110,6 +7206,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -7120,8 +7219,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
   }
 
@@ -7131,8 +7233,11 @@ export namespace Prisma {
     email: string
     emailVerified: boolean
     image?: string | null
-    createdAt: Date | string
-    updatedAt: Date | string
+    createdAt?: Date | string
+    has_access?: boolean
+    price_id?: string | null
+    customer_id?: string | null
+    updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -7159,6 +7264,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
   }
@@ -7170,6 +7278,9 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     image?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    has_access?: BoolFieldUpdateOperationsInput | boolean
+    price_id?: NullableStringFieldUpdateOperationsInput | string | null
+    customer_id?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
   }
