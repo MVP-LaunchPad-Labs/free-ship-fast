@@ -10,7 +10,7 @@ import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import SupportButton from "@/components/common/SupportButton";
 import GradientButton from "@/components/common/GradientButton";
-
+import { Suspense } from "react";
 /**
  * 404 Not Found page using common components
  *
@@ -24,7 +24,9 @@ import GradientButton from "@/components/common/GradientButton";
 export default function NotFound() {
 	return (
 		<div className="min-h-screen bg-background flex flex-col">
-			<Header />
+			<Suspense fallback={<div>Loading...</div>}>
+				<Header />
+			</Suspense>
 
 			<main className="flex-1 flex items-center justify-center px-6 py-24">
 				<div className="text-center max-w-2xl mx-auto">

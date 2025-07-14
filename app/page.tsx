@@ -11,11 +11,14 @@ import Pricing from "@/components/common/Pricing";
 import CallToAction from "@/components/common/CallToAction";
 import FAQ from "@/components/common/FAQ";
 import Footer from "@/components/common/Footer";
+import { Suspense } from "react";
 
 export default function HomePage() {
 	return (
 		<div className="min-h-screen bg-background">
-			<Header />
+			<Suspense fallback={<div>Loading...</div>}>
+				<Header />
+			</Suspense>
 
 			<main id="main-content" role="main">
 				<Hero />

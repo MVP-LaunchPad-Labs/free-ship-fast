@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import Link from "next/link";
 import {
 	RefreshCw,
@@ -42,7 +42,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
 	return (
 		<div className="min-h-screen bg-background flex flex-col">
-			<Header />
+			<Suspense fallback={<div>Loading...</div>}>
+				<Header />
+			</Suspense>
 
 			<main className="flex-1 flex items-center justify-center px-6 py-24">
 				<div className="text-center max-w-2xl mx-auto">
