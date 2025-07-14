@@ -20,11 +20,11 @@ model User {
   email         String
   emailVerified Boolean
   image         String?
-  createdAt     DateTime @default(now())
-  has_access    Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  has_access    Boolean   @default(false)
   price_id      String?
   customer_id   String?
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
 
@@ -77,3 +77,12 @@ model Verification {
   @@map("verification")
 }
 
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  ip        String?
+  userAgent String?
+
+  @@map("waitlist")
+}
