@@ -1,6 +1,6 @@
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
-type CheckoutMode = 'payment' | 'subscription';
+type CheckoutMode = "payment" | "subscription";
 
 interface CheckoutSessionConfig {
 	priceId: string;
@@ -24,11 +24,11 @@ interface CustomerPortalConfig {
 const getStripeInstance = () => {
 	const apiKey = process.env.STRIPE_SECRET_KEY;
 	if (!apiKey) {
-		throw new Error('Missing STRIPE_SECRET_KEY in environment variables');
+		throw new Error("Missing STRIPE_SECRET_KEY in environment variables");
 	}
-	
+
 	return new Stripe(apiKey, {
-		apiVersion: '2025-06-30.basil',
+		apiVersion: "2025-06-30.basil",
 		typescript: true,
 	});
 };
@@ -48,20 +48,22 @@ export const createCheckoutSession = async ({
 		// Configure session parameters based on customer status
 		const sessionConfig: {
 			customer?: string;
-			customer_creation?: 'always';
+			customer_creation?: "always";
 			customer_email?: string;
 			invoice_creation?: { enabled: boolean };
-			payment_intent_data?: { setup_future_usage: 'on_session' };
+			payment_intent_data?: { setup_future_usage: "on_session" };
 			tax_id_collection?: { enabled: boolean };
 		} = {};
 
 		if (customer?.id) {
 			sessionConfig.customer = customer.id;
 		} else {
-			if (mode === 'payment') {
-				sessionConfig.customer_creation = 'always';
+			if (mode === "payment") {
+				sessionConfig.customer_creation = "always";
 				sessionConfig.invoice_creation = { enabled: true };
-				sessionConfig.payment_intent_data = { setup_future_usage: 'on_session' };
+				sessionConfig.payment_intent_data = {
+					setup_future_usage: "on_session",
+				};
 			}
 			if (customer?.email) {
 				sessionConfig.customer_email = customer.email;
@@ -82,28 +84,30 @@ export const createCheckoutSession = async ({
 			discounts: couponId ? [{ coupon: couponId }] : [],
 			success_url: successUrl,
 			cancel_url: cancelUrl,
-			locale: 'pt-BR',
+			locale: "pt-BR",
 			...sessionConfig,
 		});
 
 		return checkoutSession.url || null;
 	} catch (error) {
-		console.error('Failed to create checkout session:', error);
+		console.error("Failed to create checkout session:", error);
 		return null;
 	}
 };
 
-export const retrieveCheckoutSession = async (sessionId: string): Promise<Stripe.Checkout.Session | null> => {
+export const retrieveCheckoutSession = async (
+	sessionId: string,
+): Promise<Stripe.Checkout.Session | null> => {
 	try {
 		const stripe = getStripeInstance();
 
 		const sessionData = await stripe.checkout.sessions.retrieve(sessionId, {
-			expand: ['line_items'],
+			expand: ["line_items"],
 		});
 
 		return sessionData;
 	} catch (error) {
-		console.error('Failed to retrieve checkout session:', error);
+		console.error("Failed to retrieve checkout session:", error);
 		return null;
 	}
 };

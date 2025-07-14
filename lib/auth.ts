@@ -1,9 +1,9 @@
-import { PrismaClient } from '@/prisma/generated/prisma';
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { nextCookies } from 'better-auth/next-js';
-import { magicLink } from 'better-auth/plugins';
-import { sendMagicLinkEmail } from './email/sendEmail';
+import { PrismaClient } from "@/prisma/generated/prisma";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
+import { magicLink } from "better-auth/plugins";
+import { sendMagicLinkEmail } from "./email/sendEmail";
 
 /*
  * MongoDB imports (uncomment if using MongoDB)
@@ -27,14 +27,14 @@ export const auth = betterAuth({
 	 * DATABASE ADAPTER CONFIGURATION
 	 * Choose based on your database preference:
 	 */
-	
+
 	/**
 	 * Option 1: Prisma adapter (PostgreSQL/MySQL/SQLite)
 	 * ✅ Pros: Type safety, migrations, excellent DX
 	 * ❌ Cons: Additional abstraction layer
 	 */
 	database: prismaAdapter(prisma, {
-		provider: 'postgresql', // Change to: 'mysql', 'sqlite', etc.
+		provider: "postgresql", // Change to: 'mysql', 'sqlite', etc.
 	}),
 
 	/**
@@ -63,7 +63,7 @@ export const auth = betterAuth({
 	plugins: [
 		/** Next.js cookie handling */
 		nextCookies(),
-		
+
 		/** Magic link authentication (passwordless) */
 		magicLink({
 			sendMagicLink: async ({ email, token, url }, request) => {

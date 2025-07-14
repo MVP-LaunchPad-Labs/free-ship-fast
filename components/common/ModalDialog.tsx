@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { X } from 'lucide-react';
+import type * as React from "react";
+import { X } from "lucide-react";
 
 import {
 	Dialog,
@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogClose,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 interface ModalDialogProps {
 	isModalOpen: boolean;
@@ -40,32 +40,29 @@ const ModalDialog = ({
 		<Dialog
 			open={isModalOpen}
 			onOpenChange={isStatic ? undefined : setIsModalOpen}
-			data-slot='modal'
+			data-slot="modal"
 		>
 			<DialogContent
-				className='bg-background border-border shadow-lg max-w-3xl'
+				className="bg-background border-border shadow-lg max-w-3xl"
 				showCloseButton={!isStatic}
-				data-slot='modal-content'
+				data-slot="modal-content"
 			>
-				<DialogHeader className='border-b border-border pb-4'>
-					<DialogTitle className='text-foreground font-semibold'>
+				<DialogHeader className="border-b border-border pb-4">
+					<DialogTitle className="text-foreground font-semibold">
 						{title}
 					</DialogTitle>
 					{!isStatic && (
 						<DialogClose
-							className='absolute right-4 top-4 hover:bg-accent hover:text-accent-foreground rounded-sm p-1 transition-colors'
-							data-slot='modal-close'
+							className="absolute right-4 top-4 hover:bg-accent hover:text-accent-foreground rounded-sm p-1 transition-colors"
+							data-slot="modal-close"
 						>
-							<X className='size-4' />
-							<span className='sr-only'>Close</span>
+							<X className="size-4" />
+							<span className="sr-only">Close</span>
 						</DialogClose>
 					)}
 				</DialogHeader>
 
-				<div
-					className='text-foreground'
-					data-slot='modal-body'
-				>
+				<div className="text-foreground" data-slot="modal-body">
 					{children}
 				</div>
 			</DialogContent>

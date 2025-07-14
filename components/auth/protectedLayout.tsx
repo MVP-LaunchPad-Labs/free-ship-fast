@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { getSession } from '@/lib/auth-utils';
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { getSession } from "@/lib/auth-utils";
 
 interface ProtectedLayoutProps {
 	children: React.ReactNode;
@@ -9,7 +9,7 @@ interface ProtectedLayoutProps {
 
 export default async function ProtectedLayout({
 	children,
-	redirectTo = '/sign-in',
+	redirectTo = "/sign-in",
 }: ProtectedLayoutProps) {
 	const session = await getSession();
 

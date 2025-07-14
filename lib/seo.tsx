@@ -1,6 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
-import config from '@/config';
+import config from "@/config";
 
 /**
  * Generate comprehensive SEO metadata for pages
@@ -35,9 +35,9 @@ export const generateSEOMetadata = ({
 		applicationName: config.appName,
 		// Base URL configuration - automatically adjusts for different environments
 		metadataBase: new URL(
-			process.env.NODE_ENV === 'development'
-				? 'http://localhost:3000/'
-				: `https://${config.domainName}/`
+			process.env.NODE_ENV === "development"
+				? "http://localhost:3000/"
+				: `https://${config.domainName}/`,
 		),
 
 		openGraph: {
@@ -53,8 +53,8 @@ export const generateSEOMetadata = ({
 			//     height: 630,
 			//   },
 			// ],
-			locale: 'en_US',
-			type: 'website',
+			locale: "en_US",
+			type: "website",
 		},
 
 		twitter: {
@@ -62,8 +62,8 @@ export const generateSEOMetadata = ({
 			description: openGraph?.description?.toString() || config.appDescription,
 			// Enable when you add Twitter-specific images (place twitter-image.* in /app folder)
 			// images: [openGraph?.image || defaultTwitterImage],
-			card: 'summary_large_image',
-			creator: '@your_twitter_handle',
+			card: "summary_large_image",
+			creator: "@your_twitter_handle",
 		},
 
 		// Canonical URL configuration prevents duplicate content penalties

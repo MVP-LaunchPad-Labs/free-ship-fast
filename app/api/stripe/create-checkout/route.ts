@@ -1,18 +1,18 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { createCheckoutSession } from '@/lib/stripe/utils';
+import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { createCheckoutSession } from "@/lib/stripe/utils";
 
 // Database abstraction layer
 interface UserDatabase {
 	findUserById(
-		userId: string
+		userId: string,
 	): Promise<{ id: string; customer_id?: string } | null>;
 }
 
 // Import the appropriate database implementation
 // For Prisma:
-import { prisma } from '@/lib/db/prisma/client';
+import { prisma } from "@/lib/db/prisma/client";
 const prismaDb: UserDatabase = {
 	async findUserById(userId: string) {
 		const user = await prisma.user.findUnique({
@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
 
 		if (!userSession) {
 			return NextResponse.json(
-				{ error: 'Authentication required to proceed with checkout.' },
-				{ status: 401 }
+				{ error: "Authentication required to proceed with checkout." },
+				{ status: 401 },
 			);
 		}
 
@@ -62,14 +62,14 @@ export async function POST(req: NextRequest) {
 		// Input validation
 		if (!priceId) {
 			return NextResponse.json(
-				{ error: 'Price ID must be provided' },
-				{ status: 400 }
+				{ error: "Price ID must be provided" },
+				{ status: 400 },
 			);
 		}
 		if (!successUrl || !cancelUrl) {
 			return NextResponse.json(
-				{ error: 'Both success and cancel URLs are required' },
-				{ status: 400 }
+				{ error: "Both success and cancel URLs are required" },
+				{ status: 400 },
 			);
 		}
 		if (!mode) {
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 					error:
 						"Checkout mode is required ('payment' for one-time or 'subscription' for recurring)",
 				},
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
@@ -86,8 +86,8 @@ export async function POST(req: NextRequest) {
 
 		if (!dbUser) {
 			return NextResponse.json(
-				{ error: 'User record not found' },
-				{ status: 404 }
+				{ error: "User record not found" },
+				{ status: 404 },
 			);
 		}
 
@@ -105,10 +105,10 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({ url: checkoutUrl });
 	} catch (error) {
-		console.error('Checkout session creation failed:', error);
+		console.error("Checkout session creation failed:", error);
 		return NextResponse.json(
 			{ error: (error as Error)?.message },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

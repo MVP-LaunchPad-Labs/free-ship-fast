@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 
 // Database abstraction layer
@@ -14,7 +14,7 @@ interface WaitlistDatabase {
 
 // Import the appropriate database implementation
 // For Prisma:
-import { prisma } from '@/lib/db/prisma/client';
+import { prisma } from "@/lib/db/prisma/client";
 const prismaDb: WaitlistDatabase = {
 	async findWaitlistByEmail(email: string) {
 		const waitlist = await prisma.waitlist.findUnique({
@@ -65,19 +65,28 @@ export async function POST(req: NextRequest) {
 		// Basic email validation
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!emailRegex.test(body.email)) {
-			return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+			return NextResponse.json(
+				{ error: "Invalid email format" },
+				{ status: 400 },
+			);
 		}
 
 		// Check for duplicate email to prevent spam
 		const existingWaitlist = await db.findWaitlistByEmail(body.email);
 		if (existingWaitlist) {
-			return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+			return NextResponse.json(
+				{ error: "Email already registered" },
+				{ status: 409 },
+			);
 		}
 
 		// Get IP and user agent for spam prevention
 		const headersList = await headers();
-		const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown';
-		const userAgent = headersList.get('user-agent') || 'unknown';
+		const ip =
+			headersList.get("x-forwarded-for") ||
+			headersList.get("x-real-ip") ||
+			"unknown";
+		const userAgent = headersList.get("user-agent") || "unknown";
 
 		// Insert with timestamp and spam prevention data
 		await db.createWaitlist({
@@ -89,9 +98,12 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error('Waitlist submission error:', error);
-		return NextResponse.json({
-			error: (error as Error)?.message || "Internal server error"
-		}, { status: 500 });
+		console.error("Waitlist submission error:", error);
+		return NextResponse.json(
+			{
+				error: (error as Error)?.message || "Internal server error",
+			},
+			{ status: 500 },
+		);
 	}
 }

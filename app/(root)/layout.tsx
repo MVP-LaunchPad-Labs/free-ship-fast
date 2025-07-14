@@ -5,10 +5,5 @@ export default function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	return (
-		<ProtectedLayout>
-			{children}
-		</ProtectedLayout>
-	);
+	return <ProtectedLayout>{children}</ProtectedLayout>;
 }
-

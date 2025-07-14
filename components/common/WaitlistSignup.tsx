@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useState, useRef } from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import * as React from "react";
+import { useState, useRef } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
-} from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import apiClient from '@/lib/api';
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import apiClient from "@/lib/api";
 
 interface WaitlistSignupProps {
 	extraStyle?: string;
@@ -44,29 +44,29 @@ const WaitlistSignup = ({ extraStyle }: WaitlistSignupProps) => {
 
 	const form = useForm<FormData>({
 		defaultValues: {
-			email: '',
+			email: "",
 		},
 	});
 
 	const handleSubmit = async (data: FormData) => {
 		if (!data.email.trim()) {
-			toast.error('Please enter a valid email address');
+			toast.error("Please enter a valid email address");
 			return;
 		}
 
 		setIsLoading(true);
 		try {
-			await apiClient.post('/waitlist', { email: data.email });
+			await apiClient.post("/waitlist", { email: data.email });
 
-			toast.success('Thanks for joining the waitlist!');
+			toast.success("Thanks for joining the waitlist!");
 
 			// Clear form and disable for success state
 			inputRef.current?.blur();
 			form.reset();
 			setIsDisabled(true);
 		} catch (error) {
-			console.error('Waitlist submission error:', error);
-			toast.error('Something went wrong. Please try again.');
+			console.error("Waitlist submission error:", error);
+			toast.error("Something went wrong. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
@@ -75,39 +75,39 @@ const WaitlistSignup = ({ extraStyle }: WaitlistSignupProps) => {
 	return (
 		<Form {...form}>
 			<form
-				className={`w-full max-w-xs space-y-3 ${extraStyle || ''}`}
+				className={`w-full max-w-xs space-y-3 ${extraStyle || ""}`}
 				onSubmit={form.handleSubmit(handleSubmit)}
-				data-slot='waitlist-form'
+				data-slot="waitlist-form"
 			>
 				<FormField
 					control={form.control}
-					name='email'
+					name="email"
 					render={({ field, fieldState }) => (
-						<FormItem className='space-y-2'>
-							<FormLabel className='text-sm font-medium text-foreground'>
+						<FormItem className="space-y-2">
+							<FormLabel className="text-sm font-medium text-foreground">
 								Email address
 							</FormLabel>
 							<FormControl>
 								<Input
 									{...field}
 									ref={inputRef}
-									type='email'
-									placeholder='tom@cruise.com'
-									autoComplete='email'
+									type="email"
+									placeholder="tom@cruise.com"
+									autoComplete="email"
 									required
 									disabled={isDisabled || isLoading}
-									className='bg-background border-border text-foreground placeholder:text-muted-foreground'
+									className="bg-background border-border text-foreground placeholder:text-muted-foreground"
 									aria-invalid={fieldState.invalid}
 									aria-describedby={
-										fieldState.error ? 'email-error' : undefined
+										fieldState.error ? "email-error" : undefined
 									}
 								/>
 							</FormControl>
 							{fieldState.error && (
 								<p
-									id='email-error'
-									className='text-sm text-destructive'
-									role='alert'
+									id="email-error"
+									className="text-sm text-destructive"
+									role="alert"
 								>
 									{fieldState.error.message}
 								</p>
@@ -117,26 +117,26 @@ const WaitlistSignup = ({ extraStyle }: WaitlistSignupProps) => {
 				/>
 
 				<Button
-					type='submit'
+					type="submit"
 					disabled={isDisabled || isLoading}
-					className='w-full gap-2'
-					data-slot='waitlist-submit-button'
+					className="w-full gap-2"
+					data-slot="waitlist-submit-button"
 				>
 					{isLoading ? (
 						<>
-							<Loader2 className='size-4 animate-spin' />
+							<Loader2 className="size-4 animate-spin" />
 							Joining...
 						</>
 					) : (
 						<>
 							Join waitlist
-							<ArrowRight className='size-4' />
+							<ArrowRight className="size-4" />
 						</>
 					)}
 				</Button>
 
 				{isDisabled && (
-					<p className='text-sm text-chart-4 text-center'>
+					<p className="text-sm text-chart-4 text-center">
 						✓ You're on the list!
 					</p>
 				)}

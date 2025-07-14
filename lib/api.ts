@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { redirect } from "next/navigation";
 import config from "@/config";
 
-
 // HTTP status codes
 const HTTP_STATUS = {
 	UNAUTHORIZED: 401,
@@ -69,9 +68,10 @@ apiClient.interceptors.response.use(
 	(response: AxiosResponse) => response.data,
 	(error: AxiosError) => {
 		const message = processError(error);
-		
+
 		// Ensure error has proper message format
-		const formattedMessage = typeof message === "string" ? message : JSON.stringify(message);
+		const formattedMessage =
+			typeof message === "string" ? message : JSON.stringify(message);
 		error.message = formattedMessage;
 
 		console.error("API Error:", formattedMessage);
@@ -80,7 +80,7 @@ apiClient.interceptors.response.use(
 		toast.error(formattedMessage || ERROR_MESSAGES.GENERIC_ERROR);
 
 		return Promise.reject(error);
-	}
+	},
 );
 
 export default apiClient;

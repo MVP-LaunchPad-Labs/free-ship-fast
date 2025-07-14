@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { authClient } from '@/lib/auth-client';
-import { Button } from '@/components/ui/button';
-import config from '@/config';
+import * as React from "react";
+import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import config from "@/config";
 
 interface SignInButtonProps {
 	extraStyle?: string;
@@ -26,9 +26,9 @@ const SignInButton = ({ extraStyle }: SignInButtonProps) => {
 		return (
 			<Button
 				asChild
-				variant='default'
+				variant="default"
 				className={extraStyle}
-				data-slot='dashboard-button'
+				data-slot="dashboard-button"
 			>
 				<a href={config.auth.callbackUrl}>Dashboard</a>
 			</Button>
@@ -39,9 +39,9 @@ const SignInButton = ({ extraStyle }: SignInButtonProps) => {
 	return (
 		<Button
 			asChild
-			variant='default'
+			variant="default"
 			className={extraStyle}
-			data-slot='signin-button'
+			data-slot="signin-button"
 		>
 			<a href={config.auth.loginUrl}>Get Started</a>
 		</Button>

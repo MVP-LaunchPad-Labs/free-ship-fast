@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import type * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
 	Settings,
 	BarChart3,
@@ -12,7 +12,7 @@ import {
 	Activity,
 	ChevronRight,
 	Command,
-} from 'lucide-react';
+} from "lucide-react";
 
 import {
 	Sidebar,
@@ -31,82 +31,82 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 	SidebarInset,
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Navigation menu items configuration
  */
 const navigationItems = [
 	{
-		title: 'Overview',
+		title: "Overview",
 		items: [
 			{
-				title: 'Dashboard',
-				url: '/dashboard',
+				title: "Dashboard",
+				url: "/dashboard",
 				icon: Home,
 			},
 			{
-				title: 'Analytics',
-				url: '/analytics',
+				title: "Analytics",
+				url: "/analytics",
 				icon: BarChart3,
 			},
 		],
 	},
 	{
-		title: 'Management',
+		title: "Management",
 		items: [
 			{
-				title: 'Users',
-				url: '/users',
+				title: "Users",
+				url: "/users",
 				icon: Users,
 			},
 			{
-				title: 'Reports',
-				url: '/reports',
+				title: "Reports",
+				url: "/reports",
 				icon: FileText,
 				items: [
 					{
-						title: 'User Reports',
-						url: '/reports/users',
+						title: "User Reports",
+						url: "/reports/users",
 					},
 					{
-						title: 'Activity Reports',
-						url: '/reports/activity',
+						title: "Activity Reports",
+						url: "/reports/activity",
 					},
 					{
-						title: 'Performance Reports',
-						url: '/reports/performance',
+						title: "Performance Reports",
+						url: "/reports/performance",
 					},
 				],
 			},
 			{
-				title: 'Activity',
-				url: '/activity',
+				title: "Activity",
+				url: "/activity",
 				icon: Activity,
 			},
 		],
 	},
 	{
-		title: 'System',
+		title: "System",
 		items: [
 			{
-				title: 'Settings',
-				url: '/settings',
+				title: "Settings",
+				url: "/settings",
 				icon: Settings,
 				items: [
 					{
-						title: 'General',
-						url: '/settings/general',
+						title: "General",
+						url: "/settings/general",
 					},
 					{
-						title: 'Security',
-						url: '/settings/security',
+						title: "Security",
+						url: "/settings/security",
 					},
 					{
-						title: 'Integrations',
-						url: '/settings/integrations',
+						title: "Integrations",
+						url: "/settings/integrations",
 					},
 				],
 			},
@@ -129,24 +129,18 @@ function AppSidebar() {
 	const pathname = usePathname();
 
 	return (
-		<Sidebar
-			variant='inset'
-			data-slot='app-sidebar'
-		>
+		<Sidebar variant="inset" data-slot="app-sidebar">
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton
-							size='lg'
-							asChild
-						>
-							<Link href='/dashboard'>
-								<div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
-									<Command className='size-4' />
+						<SidebarMenuButton size="lg" asChild>
+							<Link href="/dashboard">
+								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+									<Command className="size-4" />
 								</div>
-								<div className='grid flex-1 text-left text-sm leading-tight'>
-									<span className='truncate font-semibold'>Dashboard</span>
-									<span className='truncate text-xs'>Enterprise</span>
+								<div className="grid flex-1 text-left text-sm leading-tight">
+									<span className="truncate font-semibold">Dashboard</span>
+									<span className="truncate text-xs">Enterprise</span>
 								</div>
 							</Link>
 						</SidebarMenuButton>
@@ -162,15 +156,12 @@ function AppSidebar() {
 							<SidebarMenu>
 								{group.items.map((item) => (
 									<SidebarMenuItem key={item.title}>
-										<SidebarMenuButton
-											asChild
-											isActive={pathname === item.url}
-										>
+										<SidebarMenuButton asChild isActive={pathname === item.url}>
 											<Link href={item.url}>
-												<item.icon className='size-4' />
+												<item.icon className="size-4" />
 												<span>{item.title}</span>
 												{item.items && (
-													<ChevronRight className='ml-auto size-4' />
+													<ChevronRight className="ml-auto size-4" />
 												)}
 											</Link>
 										</SidebarMenuButton>
@@ -201,17 +192,14 @@ function AppSidebar() {
 			<SidebarFooter>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton
-							size='lg'
-							asChild
-						>
-							<Link href='/profile'>
-								<div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground'>
-									<Users className='size-4' />
+						<SidebarMenuButton size="lg" asChild>
+							<Link href="/profile">
+								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+									<Users className="size-4" />
 								</div>
-								<div className='grid flex-1 text-left text-sm leading-tight'>
-									<span className='truncate font-semibold'>Your Account</span>
-									<span className='truncate text-xs'>Profile & Settings</span>
+								<div className="grid flex-1 text-left text-sm leading-tight">
+									<span className="truncate font-semibold">Your Account</span>
+									<span className="truncate text-xs">Profile & Settings</span>
 								</div>
 							</Link>
 						</SidebarMenuButton>
@@ -235,15 +223,12 @@ function SidebarLayout({ children }: { children: React.ReactNode }) {
 		<SidebarProvider>
 			<AppSidebar />
 			<SidebarInset>
-				<header className='flex h-16 shrink-0 items-center gap-2 border-b px-4'>
-					<SidebarTrigger className='-ml-1' />
-					<Separator
-						orientation='vertical'
-						className='mr-2 h-4'
-					/>
-					<h1 className='text-lg font-semibold'>Dashboard</h1>
+				<header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+					<SidebarTrigger className="-ml-1" />
+					<Separator orientation="vertical" className="mr-2 h-4" />
+					<h1 className="text-lg font-semibold">Dashboard</h1>
 				</header>
-				<div className='flex flex-1 flex-col gap-4 p-4'>{children}</div>
+				<div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

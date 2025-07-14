@@ -1,10 +1,10 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { headers } from 'next/headers';
-import Stripe from 'stripe';
-import { retrieveCheckoutSession } from '@/lib/stripe/utils';
+import { NextResponse, type NextRequest } from "next/server";
+import { headers } from "next/headers";
+import Stripe from "stripe";
+import { retrieveCheckoutSession } from "@/lib/stripe/utils";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-06-30.basil',
+	apiVersion: "2025-06-30.basil",
 	typescript: true,
 });
 
@@ -14,20 +14,20 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 interface UserDatabase {
 	updateUser(
 		userId: string,
-		data: { customer_id?: string; price_id?: string; has_access?: boolean }
+		data: { customer_id?: string; price_id?: string; has_access?: boolean },
 	): Promise<void>;
 	updateUsersByCustomerId(
 		customerId: string,
-		data: { has_access?: boolean }
+		data: { has_access?: boolean },
 	): Promise<void>;
 	findUserByCustomerId(
-		customerId: string
+		customerId: string,
 	): Promise<{ id: string; price_id?: string } | null>;
 }
 
 // Import the appropriate database implementation
 // For Prisma:
-import { prisma } from '@/lib/db/prisma/client';
+import { prisma } from "@/lib/db/prisma/client";
 const prismaDb: UserDatabase = {
 	async updateUser(userId: string, data) {
 		await prisma.user.update({
@@ -126,25 +126,25 @@ const handleInvoicePaid = async (event: Stripe.Event) => {
 
 const webhookHandlers: Record<string, (event: Stripe.Event) => Promise<void>> =
 	{
-		'checkout.session.completed': handleCheckoutCompleted,
-		'customer.subscription.deleted': handleSubscriptionDeleted,
-		'invoice.paid': handleInvoicePaid,
+		"checkout.session.completed": handleCheckoutCompleted,
+		"customer.subscription.deleted": handleSubscriptionDeleted,
+		"invoice.paid": handleInvoicePaid,
 		// Acknowledge but don't process these events
-		'checkout.session.expired': async () => {},
-		'customer.subscription.updated': async () => {},
-		'invoice.payment_failed': async () => {},
+		"checkout.session.expired": async () => {},
+		"customer.subscription.updated": async () => {},
+		"invoice.payment_failed": async () => {},
 	};
 
 export async function POST(req: NextRequest) {
 	try {
 		const requestBody = await req.text();
 		const headersList = await headers();
-		const stripeSignature = headersList.get('stripe-signature');
+		const stripeSignature = headersList.get("stripe-signature");
 
 		if (!stripeSignature) {
 			return NextResponse.json(
-				{ error: 'Missing stripe signature' },
-				{ status: 400 }
+				{ error: "Missing stripe signature" },
+				{ status: 400 },
 			);
 		}
 
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
 		const webhookEvent = stripe.webhooks.constructEvent(
 			requestBody,
 			stripeSignature,
-			webhookSecret
+			webhookSecret,
 		);
 
 		// Process event if handler exists

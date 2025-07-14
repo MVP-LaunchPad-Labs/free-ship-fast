@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface GradientButtonProps {
 	title?: string;
@@ -21,7 +21,7 @@ interface GradientButtonProps {
  * - Uses tailwind variable colors for consistency
  */
 const GradientButton = ({
-	title = 'Gradient Button',
+	title = "Gradient Button",
 	onClick = () => {},
 	className,
 }: GradientButtonProps) => {
@@ -29,12 +29,12 @@ const GradientButton = ({
 		<Button
 			onClick={onClick}
 			className={cn(
-				'bg-gradient-to-r from-primary via-primary/80 to-primary bg-size-200 animate-shimmer',
-				'hover:bg-gradient-to-l hover:from-primary hover:via-primary/90 hover:to-primary',
-				'text-primary-foreground shadow-lg',
-				className
+				"bg-gradient-to-r from-primary via-primary/80 to-primary bg-size-200 animate-shimmer",
+				"hover:bg-gradient-to-l hover:from-primary hover:via-primary/90 hover:to-primary",
+				"text-primary-foreground shadow-lg",
+				className,
 			)}
-			data-slot='gradient-button'
+			data-slot="gradient-button"
 		>
 			{title}
 		</Button>
