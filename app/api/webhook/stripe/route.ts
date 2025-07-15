@@ -1,10 +1,11 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { headers } from "next/headers";
-import Stripe from "stripe";
-import { retrieveCheckoutSession } from "@/lib/stripe/utils";
+import { NextResponse, type NextRequest } from 'next/server';
+import { headers } from 'next/headers';
+import Stripe from 'stripe';
+import { retrieveCheckoutSession } from '@/lib/stripe/utils';
+import { getDatabaseConfig } from '@/lib/config-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: "2025-06-30.basil",
+	apiVersion: '2025-06-30.basil',
 	typescript: true,
 });
 
@@ -14,20 +15,20 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 interface UserDatabase {
 	updateUser(
 		userId: string,
-		data: { customer_id?: string; price_id?: string; has_access?: boolean },
+		data: { customer_id?: string; price_id?: string; has_access?: boolean }
 	): Promise<void>;
 	updateUsersByCustomerId(
 		customerId: string,
-		data: { has_access?: boolean },
+		data: { has_access?: boolean }
 	): Promise<void>;
 	findUserByCustomerId(
-		customerId: string,
+		customerId: string
 	): Promise<{ id: string; price_id?: string } | null>;
 }
 
 // Import the appropriate database implementation
 // For Prisma:
-import { prisma } from "@/lib/db/prisma/client";
+import { prisma } from '@/lib/db/prisma/client';
 const prismaDb: UserDatabase = {
 	async updateUser(userId: string, data) {
 		await prisma.user.update({
@@ -50,37 +51,102 @@ const prismaDb: UserDatabase = {
 	},
 };
 
-// For MongoDB (uncomment when needed):
-/*
+// For MongoDB:
 import { mongo } from '@/lib/db/mongodb/client';
+import { ObjectId } from 'mongodb';
 const mongoDb: UserDatabase = {
 	async updateUser(userId: string, data) {
 		const db = mongo.db(process.env.MONGODB_DATABASE);
-		await db.collection('users').updateOne(
-			{ _id: userId },
-			{ $set: data }
-		);
+		await db
+			.collection('users')
+			.updateOne({ _id: new ObjectId(userId) }, { $set: data });
 	},
 	async updateUsersByCustomerId(customerId: string, data) {
 		const db = mongo.db(process.env.MONGODB_DATABASE);
-		await db.collection('users').updateMany(
-			{ customer_id: customerId },
-			{ $set: data }
-		);
+		await db
+			.collection('users')
+			.updateMany({ customer_id: customerId }, { $set: data });
 	},
 	async findUserByCustomerId(customerId: string) {
 		const db = mongo.db(process.env.MONGODB_DATABASE);
-		const user = await db.collection('users').findOne(
-			{ customer_id: customerId },
-			{ projection: { _id: 1, price_id: 1 } }
-		);
-		return user ? { id: user._id, price_id: user.price_id } : null;
+		const user = await db
+			.collection('users')
+			.findOne(
+				{ customer_id: customerId },
+				{ projection: { _id: 1, price_id: 1 } }
+			);
+		return user ? { id: user._id.toString(), price_id: user.price_id } : null;
 	},
 };
-*/
 
-// Choose database implementation
-const db: UserDatabase = prismaDb; // Switch to mongoDb when using MongoDB
+// For Supabase:
+import { createClient } from '@/lib/supabase/client';
+const supabaseDb: UserDatabase = {
+	async updateUser(userId: string, data) {
+		const supabase = createClient();
+
+		// Convert data keys to match Supabase naming
+		const updateData: any = {};
+		if (data.customer_id !== undefined)
+			updateData.customer_id = data.customer_id;
+		if (data.price_id !== undefined) updateData.price_id = data.price_id;
+		if (data.has_access !== undefined) updateData.has_access = data.has_access;
+
+		const { error } = await supabase
+			.from('profiles')
+			.update(updateData)
+			.eq('id', userId);
+
+		if (error) {
+			throw new Error(`Failed to update user: ${error.message}`);
+		}
+	},
+	async updateUsersByCustomerId(customerId: string, data) {
+		const supabase = createClient();
+
+		const updateData: any = {};
+		if (data.has_access !== undefined) updateData.has_access = data.has_access;
+
+		const { error } = await supabase
+			.from('profiles')
+			.update(updateData)
+			.eq('customer_id', customerId);
+
+		if (error) {
+			throw new Error(
+				`Failed to update users by customer ID: ${error.message}`
+			);
+		}
+	},
+	async findUserByCustomerId(customerId: string) {
+		const supabase = createClient();
+		const { data: user } = await supabase
+			.from('profiles')
+			.select('id, price_id')
+			.eq('customer_id', customerId)
+			.single();
+
+		return user ? { id: user.id, price_id: user.price_id || undefined } : null;
+	},
+};
+
+// Automatically choose database implementation based on config
+const getDatabaseImplementation = (): UserDatabase => {
+	const { provider } = getDatabaseConfig();
+
+	switch (provider) {
+		case 'prisma':
+			return prismaDb;
+		case 'mongodb':
+			return mongoDb;
+		case 'supabase':
+			return supabaseDb;
+		default:
+			throw new Error(`Database provider ${provider} not implemented`);
+	}
+};
+
+const db: UserDatabase = getDatabaseImplementation();
 
 // Webhook event handlers
 const handleCheckoutCompleted = async (event: Stripe.Event) => {
@@ -126,25 +192,25 @@ const handleInvoicePaid = async (event: Stripe.Event) => {
 
 const webhookHandlers: Record<string, (event: Stripe.Event) => Promise<void>> =
 	{
-		"checkout.session.completed": handleCheckoutCompleted,
-		"customer.subscription.deleted": handleSubscriptionDeleted,
-		"invoice.paid": handleInvoicePaid,
+		'checkout.session.completed': handleCheckoutCompleted,
+		'customer.subscription.deleted': handleSubscriptionDeleted,
+		'invoice.paid': handleInvoicePaid,
 		// Acknowledge but don't process these events
-		"checkout.session.expired": async () => {},
-		"customer.subscription.updated": async () => {},
-		"invoice.payment_failed": async () => {},
+		'checkout.session.expired': async () => {},
+		'customer.subscription.updated': async () => {},
+		'invoice.payment_failed': async () => {},
 	};
 
 export async function POST(req: NextRequest) {
 	try {
 		const requestBody = await req.text();
 		const headersList = await headers();
-		const stripeSignature = headersList.get("stripe-signature");
+		const stripeSignature = headersList.get('stripe-signature');
 
 		if (!stripeSignature) {
 			return NextResponse.json(
-				{ error: "Missing stripe signature" },
-				{ status: 400 },
+				{ error: 'Missing stripe signature' },
+				{ status: 400 }
 			);
 		}
 
@@ -152,7 +218,7 @@ export async function POST(req: NextRequest) {
 		const webhookEvent = stripe.webhooks.constructEvent(
 			requestBody,
 			stripeSignature,
-			webhookSecret,
+			webhookSecret
 		);
 
 		// Process event if handler exists
