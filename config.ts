@@ -10,7 +10,7 @@ const config: ConfigProps = {
 	services: {
 		database: 'prisma', // 'prisma' | 'mongodb' | 'supabase'
 		auth: 'better-auth', // 'better-auth' | 'supabase' | 'next-auth'
-		payment: 'stripe', // 'stripe' | 'lemonsqueezy'
+		payment: 'lemonsqueezy', // 'stripe' | 'lemonsqueezy'
 		email: 'resend', // 'resend' | 'nodemailer' | 'sendgrid'
 	},
 
@@ -51,43 +51,42 @@ const config: ConfigProps = {
 
 	// Payment configurations
 	payment: {
-		stripe: {
-			publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-			secretKey: process.env.STRIPE_SECRET_KEY || '',
-			webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-			plans: [
-				{
-					priceId:
-						process.env.NODE_ENV === 'development'
-							? 'price_dev_xxxxxxxxxxxxxxxxx'
-							: 'price_prod_xxxxxxxxxxxxxxxxx',
-					name: 'Basic Plan',
-					description: 'Perfect for getting started',
-					price: 9.99,
-					features: [
-						{ name: 'Feature 1' },
-						{ name: 'Feature 2' },
-						{ name: 'Feature 3' },
-					],
-				},
-				{
-					priceId:
-						process.env.NODE_ENV === 'development'
-							? 'price_dev_xxxxxxxxxxxxxxxxx'
-							: 'price_prod_xxxxxxxxxxxxxxxxx',
-					isFeatured: true,
-					name: 'Pro Plan',
-					description: 'Most popular choice',
-					price: 19.99,
-					features: [
-						{ name: 'Everything in Basic' },
-						{ name: 'Advanced Feature 1' },
-						{ name: 'Advanced Feature 2' },
-						{ name: 'Priority support' },
-					],
-				},
-			],
-		},
+		// Only configure the payment provider you're using
+		// Stripe configuration (uncomment if using Stripe)
+		// stripe: {
+		// 	publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+		// 	secretKey: process.env.STRIPE_SECRET_KEY || '',
+		// 	webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+		// 	plans: [
+		// 		{
+		// 			priceId: 'price_1234567890',
+		// 			name: 'Basic Plan',
+		// 			description: 'Perfect for getting started',
+		// 			price: 9.99,
+		// 			isFeatured: true,
+		// 			features: [
+		// 				{ name: 'Feature 1' },
+		// 				{ name: 'Feature 2' },
+		// 				{ name: 'Feature 3' },
+		// 			],
+		// 		},
+		// 		{
+		// 			priceId: 'price_0987654321',
+		// 			name: 'Pro Plan',
+		// 			description: 'For growing businesses',
+		// 			price: 19.99,
+		// 			priceAnchor: 29.99,
+		// 			features: [
+		// 				{ name: 'All Basic features' },
+		// 				{ name: 'Advanced Feature 1' },
+		// 				{ name: 'Advanced Feature 2' },
+		// 				{ name: 'Priority Support' },
+		// 			],
+		// 		},
+		// 	],
+		// },
+
+		// LemonSqueezy configuration (currently active)
 		lemonsqueezy: {
 			apiKey: process.env.LEMONSQUEEZY_API_KEY || '',
 			storeId: process.env.LEMONSQUEEZY_STORE_ID || '',
@@ -98,7 +97,25 @@ const config: ConfigProps = {
 					name: 'Basic Plan',
 					description: 'Perfect for getting started',
 					price: 9.99,
-					features: [{ name: 'Feature 1' }, { name: 'Feature 2' }],
+					isFeatured: true,
+					features: [
+						{ name: 'Feature 1' },
+						{ name: 'Feature 2' },
+						{ name: 'Feature 3' },
+					],
+				},
+				{
+					variantId: '789012',
+					name: 'Pro Plan',
+					description: 'For growing businesses',
+					price: 19.99,
+					priceAnchor: 29.99,
+					features: [
+						{ name: 'All Basic features' },
+						{ name: 'Advanced Feature 1' },
+						{ name: 'Advanced Feature 2' },
+						{ name: 'Priority Support' },
+					],
 				},
 			],
 		},

@@ -1,24 +1,15 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import Stripe from 'stripe';
-import {
-	retrieveCheckoutSession,
-	verifyWebhookSignature,
-} from '@/lib/stripe/utils';
+import crypto from 'crypto';
+import { verifyWebhookSignature } from '@/lib/lemonSqueezy/utils';
 import { getDatabaseConfig } from '@/lib/config-utils';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-06-30.basil',
-	typescript: true,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+import config from '@/config';
 
 // Database abstraction layer
 interface UserDatabase {
 	updateUser(
 		userId: string,
-		data: { customer_id?: string; price_id?: string; has_access?: boolean }
+		data: { customer_id?: string; variant_id?: string; has_access?: boolean }
 	): Promise<void>;
 	updateUsersByCustomerId(
 		customerId: string,
@@ -26,7 +17,9 @@ interface UserDatabase {
 	): Promise<void>;
 	findUserByCustomerId(
 		customerId: string
-	): Promise<{ id: string; price_id?: string } | null>;
+	): Promise<{ id: string; email?: string } | null>;
+	findUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
+	createUser(email: string): Promise<{ id: string; email: string } | null>;
 }
 
 // Database handlers for different providers
@@ -53,11 +46,30 @@ const getUserDatabase = async (): Promise<UserDatabase> => {
 				async findUserByCustomerId(customerId: string) {
 					const user = await prisma.user.findFirst({
 						where: { customer_id: customerId },
-						select: { id: true, price_id: true },
+						select: { id: true, email: true },
 					});
-					return user
-						? { id: user.id, price_id: user.price_id || undefined }
-						: null;
+					return user;
+				},
+				async findUserByEmail(email: string) {
+					const user = await prisma.user.findFirst({
+						where: { email },
+						select: { id: true, email: true },
+					});
+					return user;
+				},
+				async createUser(email: string) {
+					// Generate a unique ID for the user
+					const userId = crypto.randomUUID();
+					const user = await prisma.user.create({
+						data: {
+							id: userId,
+							email,
+							name: email.split('@')[0], // Use email prefix as name
+							emailVerified: false,
+						},
+						select: { id: true, email: true },
+					});
+					return user;
 				},
 			};
 		}
@@ -84,11 +96,19 @@ const getUserDatabase = async (): Promise<UserDatabase> => {
 						.collection('users')
 						.findOne(
 							{ customer_id: customerId },
-							{ projection: { _id: 1, price_id: 1 } }
+							{ projection: { _id: 1, email: 1 } }
 						);
-					return user
-						? { id: user._id.toString(), price_id: user.price_id }
-						: null;
+					return user ? { id: user._id.toString(), email: user.email } : null;
+				},
+				async findUserByEmail(email: string) {
+					const user = await db
+						.collection('users')
+						.findOne({ email }, { projection: { _id: 1, email: 1 } });
+					return user ? { id: user._id.toString(), email: user.email } : null;
+				},
+				async createUser(email: string) {
+					const result = await db.collection('users').insertOne({ email });
+					return { id: result.insertedId.toString(), email };
 				},
 			};
 		}
@@ -102,7 +122,8 @@ const getUserDatabase = async (): Promise<UserDatabase> => {
 					const updateData: any = {};
 					if (data.customer_id !== undefined)
 						updateData.customer_id = data.customer_id;
-					if (data.price_id !== undefined) updateData.price_id = data.price_id;
+					if (data.variant_id !== undefined)
+						updateData.variant_id = data.variant_id;
 					if (data.has_access !== undefined)
 						updateData.has_access = data.has_access;
 
@@ -134,12 +155,29 @@ const getUserDatabase = async (): Promise<UserDatabase> => {
 				async findUserByCustomerId(customerId: string) {
 					const { data: user } = await supabase
 						.from('profiles')
-						.select('id, price_id')
+						.select('id, email')
 						.eq('customer_id', customerId)
 						.single();
 
-					return user
-						? { id: user.id, price_id: user.price_id || undefined }
+					return user;
+				},
+				async findUserByEmail(email: string) {
+					const { data: user } = await supabase
+						.from('profiles')
+						.select('id, email')
+						.eq('email', email)
+						.single();
+
+					return user;
+				},
+				async createUser(email: string) {
+					// Create user using Supabase Auth Admin
+					const { data } = await supabase.auth.admin.createUser({
+						email,
+					});
+
+					return data?.user
+						? { id: data.user.id, email: data.user.email || email }
 						: null;
 				},
 			};
@@ -151,106 +189,110 @@ const getUserDatabase = async (): Promise<UserDatabase> => {
 };
 
 // Webhook event handlers
-const handleCheckoutCompleted = async (
-	event: Stripe.Event,
-	db: UserDatabase
-) => {
-	const sessionData = event.data.object as Stripe.Checkout.Session;
-	const sessionDetails = await retrieveCheckoutSession(sessionData.id);
+const handleOrderCreated = async (payload: any, db: UserDatabase) => {
+	const customerId = payload.data.attributes.customer_id.toString();
+	const userId = payload.meta?.custom_data?.userId;
+	const email = payload.data.attributes.user_email;
+	const variantId =
+		payload.data.attributes.first_order_item.variant_id.toString();
 
-	const customerId = sessionDetails?.customer as string;
-	const priceId = sessionDetails?.line_items?.data[0]?.price?.id;
-	const userId = sessionData.client_reference_id;
+	const lemonsqueezyConfig = config.payment.lemonsqueezy;
+	if (!lemonsqueezyConfig) {
+		console.error('LemonSqueezy configuration not found');
+		return;
+	}
 
-	if (!userId || !customerId || !priceId) return;
+	const plan = lemonsqueezyConfig.plans.find(
+		(p: any) => p.variantId === variantId
+	);
 
-	await db.updateUser(userId, {
+	if (!plan) return;
+
+	let user;
+	if (!userId) {
+		// Check if user already exists
+		user = await db.findUserByEmail(email);
+
+		if (!user) {
+			// Create a new user
+			user = await db.createUser(email);
+		}
+	} else {
+		// Find user by ID - for Supabase, this would be in profiles
+		user =
+			(await db.findUserByCustomerId(userId)) ||
+			(await db.findUserByEmail(email));
+	}
+
+	if (!user) return;
+
+	await db.updateUser(user.id, {
 		customer_id: customerId,
-		price_id: priceId,
+		variant_id: variantId,
 		has_access: true,
 	});
 };
 
-const handleSubscriptionDeleted = async (
-	event: Stripe.Event,
-	db: UserDatabase
-) => {
-	const subscriptionData = event.data.object as Stripe.Subscription;
-	const subscription = await stripe.subscriptions.retrieve(subscriptionData.id);
+const handleSubscriptionCancelled = async (payload: any, db: UserDatabase) => {
+	const customerId = payload.data.attributes.customer_id.toString();
 
-	await db.updateUsersByCustomerId(subscription.customer as string, {
+	const user = await db.findUserByCustomerId(customerId);
+
+	if (!user) return;
+
+	await db.updateUser(user.id, {
 		has_access: false,
 	});
 };
 
-const handleInvoicePaid = async (event: Stripe.Event, db: UserDatabase) => {
-	const invoiceData = event.data.object as Stripe.Invoice;
-	const lineItem = invoiceData.lines.data[0];
-	const priceId = lineItem?.pricing?.price_details?.price;
-	const customerId = invoiceData.customer as string;
-
-	if (!customerId || !priceId) return;
-
-	const user = await db.findUserByCustomerId(customerId);
-
-	if (!user || user.price_id !== priceId) return;
-
-	await db.updateUser(user.id, { has_access: true });
-};
-
 const webhookHandlers: Record<
 	string,
-	(event: Stripe.Event, db: UserDatabase) => Promise<void>
+	(payload: any, db: UserDatabase) => Promise<void>
 > = {
-	'checkout.session.completed': handleCheckoutCompleted,
-	'customer.subscription.deleted': handleSubscriptionDeleted,
-	'invoice.paid': handleInvoicePaid,
-	// Acknowledge but don't process these events
-	'checkout.session.expired': async () => {},
-	'customer.subscription.updated': async () => {},
-	'invoice.payment_failed': async () => {},
+	order_created: handleOrderCreated,
+	subscription_cancelled: handleSubscriptionCancelled,
 };
 
 export async function POST(req: NextRequest) {
 	try {
 		const rawPayload = await req.text();
 		const headersList = await headers();
-		const webhookSignature = headersList.get('stripe-signature');
+		const webhookSignature = headersList.get('x-signature');
 
 		if (!webhookSignature) {
 			return NextResponse.json(
-				{ error: 'Missing stripe signature' },
+				{ error: 'Missing webhook signature' },
 				{ status: 400 }
 			);
 		}
 
 		// Verify webhook authenticity using utility function
-		const webhookEvent = verifyWebhookSignature(
-			rawPayload,
-			webhookSignature,
-			webhookSecret
-		);
+		const isValid = verifyWebhookSignature(rawPayload, webhookSignature);
 
-		if (!webhookEvent) {
+		if (!isValid) {
 			return NextResponse.json(
 				{ error: 'Invalid webhook signature' },
 				{ status: 400 }
 			);
 		}
 
+		// Parse the payload
+		const payload = JSON.parse(rawPayload);
+		const eventName = payload.meta.event_name;
+
 		// Get database implementation
 		const db = await getUserDatabase();
 
 		// Process event if handler exists
-		const eventHandler = webhookHandlers[webhookEvent.type];
+		const eventHandler = webhookHandlers[eventName];
 		if (eventHandler) {
-			await eventHandler(webhookEvent, db);
+			await eventHandler(payload, db);
 		}
 
 		return NextResponse.json({ received: true });
 	} catch (error) {
 		const err = error as Error;
-		console.error(`Webhook processing failed: ${err.message}`);
+		console.error(`LemonSqueezy webhook processing failed: ${err.message}`);
 		return NextResponse.json({ error: err.message }, { status: 400 });
 	}
 }

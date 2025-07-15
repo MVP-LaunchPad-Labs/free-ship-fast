@@ -25,7 +25,9 @@ export function getDatabaseConfig() {
  */
 export function getAuthConfig() {
 	const provider = config.services.auth;
-	const authConfig = config.auth[provider];
+	const authConfig = provider === 'better-auth' 
+		? config.auth.betterAuth 
+		: config.auth[provider as keyof typeof config.auth];
 
 	if (!authConfig) {
 		throw new Error(`Auth configuration for ${provider} not found`);

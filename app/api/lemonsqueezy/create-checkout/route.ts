@@ -1,12 +1,11 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createCheckoutSession } from '@/lib/stripe/utils';
+import { createCheckoutSession } from '@/lib/lemonSqueezy/utils';
 import { getDatabaseConfig, getAuthConfig } from '@/lib/config-utils';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Simple user data interface
 interface User {
 	id: string;
 	email: string;
-	customer_id?: string;
 }
 
 // Auth handlers for different providers
@@ -41,16 +40,10 @@ const getUserFromDatabase = async (userId: string): Promise<User | null> => {
 			const prisma = new PrismaClient();
 			const user = await prisma.user.findUnique({
 				where: { id: userId },
-				select: { id: true, email: true, customer_id: true },
+				select: { id: true, email: true },
 			});
 			await prisma.$disconnect();
-			return user
-				? {
-						id: user.id,
-						email: user.email,
-						customer_id: user.customer_id || undefined,
-					}
-				: null;
+			return user;
 		}
 
 		case 'mongodb': {
@@ -63,51 +56,23 @@ const getUserFromDatabase = async (userId: string): Promise<User | null> => {
 				.collection('users')
 				.findOne(
 					{ _id: new ObjectId(userId) },
-					{ projection: { _id: 1, email: 1, customer_id: 1 } }
+					{ projection: { _id: 1, email: 1 } }
 				);
 
 			await client.close();
-			return user
-				? {
-						id: user._id.toString(),
-						email: user.email,
-						customer_id: user.customer_id || undefined,
-					}
-				: null;
+			return user ? { id: user._id.toString(), email: user.email } : null;
 		}
 
 		case 'supabase': {
 			const { createClient } = await import('@/lib/supabase/server');
 			const supabase = await createClient();
-
-			// Try to find existing profile
-			const { data: profile } = await supabase
+			const { data: user } = await supabase
 				.from('profiles')
-				.select('id, email, customer_id')
+				.select('id, email')
 				.eq('id', userId)
 				.single();
 
-			// If no profile exists, create one with email from auth
-			if (!profile) {
-				const {
-					data: { user: authUser },
-				} = await supabase.auth.getUser();
-
-				const { data: newProfile, error } = await supabase
-					.from('profiles')
-					.insert([{ id: userId, email: authUser?.email }])
-					.select('id, email, customer_id')
-					.single();
-
-				if (error) {
-					console.error('Failed to create profile:', error);
-					throw new Error('Failed to create user profile');
-				}
-
-				return newProfile;
-			}
-
-			return profile;
+			return user;
 		}
 
 		default:
@@ -116,64 +81,57 @@ const getUserFromDatabase = async (userId: string): Promise<User | null> => {
 };
 
 /**
- * Create Stripe checkout session
+ * Create LemonSqueezy checkout session
  * Supports all auth and database providers
  */
 export async function POST(req: NextRequest) {
 	try {
+		const body = await req.json();
+		const { variantId, successUrl, cancelUrl, discountCode } = body;
+
+		// Validate required fields
+		if (!variantId) {
+			return NextResponse.json(
+				{ error: 'Variant ID is required' },
+				{ status: 400 }
+			);
+		}
+
+		if (!successUrl) {
+			return NextResponse.json(
+				{ error: 'Success URL is required' },
+				{ status: 400 }
+			);
+		}
+
 		// Get user session from configured auth provider
 		const session = await getAuthSession(req);
 
-		if (!session?.user?.id) {
-			return NextResponse.json(
-				{ error: 'Authentication required' },
-				{ status: 401 }
-			);
-		}
+		let userId: string | undefined;
+		let userEmail: string | undefined;
 
-		const body = await req.json();
-		const { priceId, mode, successUrl, cancelUrl } = body;
-
-		// Validate required fields
-		if (!priceId) {
-			return NextResponse.json(
-				{ error: 'Price ID is required' },
-				{ status: 400 }
-			);
-		}
-
-		if (!successUrl || !cancelUrl) {
-			return NextResponse.json(
-				{ error: 'Success and cancel URLs are required' },
-				{ status: 400 }
-			);
-		}
-
-		if (!mode) {
-			return NextResponse.json(
-				{ error: 'Checkout mode is required' },
-				{ status: 400 }
-			);
-		}
-
-		// Get user from database
-		const user = await getUserFromDatabase(session.user.id);
-
-		if (!user) {
-			return NextResponse.json({ error: 'User not found' }, { status: 404 });
+		// If user is logged in, get their data
+		if (session?.user?.id) {
+			try {
+				const user = await getUserFromDatabase(session.user.id);
+				if (user) {
+					userId = user.id;
+					userEmail = user.email;
+				}
+			} catch (error) {
+				console.error('Failed to fetch user:', error);
+				// Continue without user data - checkout still works
+			}
 		}
 
 		// Create checkout session
 		const checkoutUrl = await createCheckoutSession({
-			priceId,
-			mode,
+			variantId,
 			successUrl,
 			cancelUrl,
-			clientReferenceId: user.id,
-			customer: {
-				email: user.email,
-				id: user.customer_id,
-			},
+			userId,
+			email: userEmail,
+			discountCode,
 		});
 
 		if (!checkoutUrl) {

@@ -1,5 +1,5 @@
 export type DatabaseProvider = 'prisma' | 'mongodb' | 'supabase';
-export type AuthProvider = 'better-auth' | 'supabase' | 'next-auth';
+export type AuthProvider = 'better-auth' | 'supabase';
 export type PaymentProvider = 'stripe' | 'lemonsqueezy';
 export type EmailProvider = 'resend' | 'nodemailer' | 'sendgrid';
 
