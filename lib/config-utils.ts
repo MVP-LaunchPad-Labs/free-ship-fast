@@ -1,48 +1,29 @@
 import config from '@/config';
-import type {
-	DatabaseProvider,
-	AuthProvider,
-	PaymentProvider,
-	EmailProvider,
-} from '@/types/config';
 
 /**
- * Get the current database configuration based on config.services.database
+ * Get the current database configuration (Prisma only)
  */
 export function getDatabaseConfig() {
-	const provider = config.services.database;
-	const dbConfig = config.database[provider];
-
-	if (!dbConfig) {
-		throw new Error(`Database configuration for ${provider} not found`);
-	}
-
-	return { provider, config: dbConfig };
+	return {
+		provider: 'prisma' as const,
+		config: config.database.prisma,
+	};
 }
 
 /**
- * Get the current auth configuration based on config.services.auth
+ * Get the current auth configuration (Better Auth only)
  */
 export function getAuthConfig() {
-	const provider = config.services.auth;
-	const authConfig = provider === 'better-auth' 
-		? config.auth.betterAuth 
-		: config.auth[provider as keyof typeof config.auth];
-
-	if (!authConfig) {
-		throw new Error(`Auth configuration for ${provider} not found`);
-	}
-
 	return {
-		provider,
-		config: authConfig,
+		provider: 'better-auth' as const,
+		config: config.auth.betterAuth,
 		loginUrl: config.auth.loginUrl,
 		callbackUrl: config.auth.callbackUrl,
 	};
 }
 
 /**
- * Get the current payment configuration based on config.services.payment
+ * Get the current payment configuration
  */
 export function getPaymentConfig() {
 	const provider = config.services.payment;
@@ -56,7 +37,7 @@ export function getPaymentConfig() {
 }
 
 /**
- * Get the current email configuration based on config.services.email
+ * Get the current email configuration
  */
 export function getEmailConfig() {
 	const provider = config.services.email;
@@ -67,16 +48,6 @@ export function getEmailConfig() {
 	}
 
 	return { provider, config: emailConfig };
-}
-
-/**
- * Check if a specific service provider is currently active
- */
-export function isServiceActive(
-	service: keyof typeof config.services,
-	provider: string
-): boolean {
-	return config.services[service] === provider;
 }
 
 /**

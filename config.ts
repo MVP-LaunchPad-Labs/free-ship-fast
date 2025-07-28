@@ -8,8 +8,8 @@ const config: ConfigProps = {
 
 	// Service provider selections - change these to switch providers
 	services: {
-		database: 'prisma', // 'prisma' | 'mongodb' | 'supabase'
-		auth: 'better-auth', // 'better-auth' | 'supabase' | 'next-auth'
+		database: 'prisma',
+		auth: 'better-auth',
 		payment: 'lemonsqueezy', // 'stripe' | 'lemonsqueezy'
 		email: 'resend', // 'resend' | 'nodemailer' | 'sendgrid'
 	},
@@ -18,15 +18,6 @@ const config: ConfigProps = {
 	database: {
 		prisma: {
 			databaseUrl: process.env.DATABASE_URL || '',
-		},
-		mongodb: {
-			connectionString: process.env.MONGODB_URI || '',
-			databaseName: process.env.MONGODB_DATABASE || 'your-app',
-		},
-		supabase: {
-			url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-			anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-			serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 		},
 	},
 
@@ -37,14 +28,6 @@ const config: ConfigProps = {
 		betterAuth: {
 			secret: process.env.BETTER_AUTH_SECRET || '',
 			baseUrl: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-			providers: ['google', 'github'],
-		},
-		supabase: {
-			redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?redirect=/dashboard`,
-			providers: ['google', 'github'],
-		},
-		nextAuth: {
-			secret: process.env.NEXTAUTH_SECRET || '',
 			providers: ['google', 'github'],
 		},
 	},

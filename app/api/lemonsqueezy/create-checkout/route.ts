@@ -1,6 +1,7 @@
 import { createCheckoutSession } from '@/lib/lemonSqueezy/utils';
-import { getDatabaseConfig, getAuthConfig } from '@/lib/config-utils';
+import { auth } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@/prisma/generated/prisma';
 
 // Simple user data interface
 interface User {
@@ -8,81 +9,26 @@ interface User {
 	email: string;
 }
 
-// Auth handlers for different providers
-const getAuthSession = async (req: NextRequest) => {
-	const { provider } = getAuthConfig();
+const prisma = new PrismaClient();
 
-	switch (provider) {
-		case 'better-auth': {
-			const { auth } = await import('@/lib/auth');
-			return await auth.api.getSession({ headers: req.headers });
-		}
-		case 'supabase': {
-			const { createClient } = await import('@/lib/supabase/server');
-			const supabase = await createClient();
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			return user ? { user: { id: user.id, email: user.email } } : null;
-		}
-		default:
-			return null;
-	}
+// Auth handler for Better Auth
+const getAuthSession = async (req: NextRequest) => {
+	return await auth.api.getSession({ headers: req.headers });
 };
 
-// Database handlers for different providers
+// Database handler for Prisma
 const getUserFromDatabase = async (userId: string): Promise<User | null> => {
-	const { provider } = getDatabaseConfig();
-
-	switch (provider) {
-		case 'prisma': {
-			const { PrismaClient } = await import('@/prisma/generated/prisma');
-			const prisma = new PrismaClient();
-			const user = await prisma.user.findUnique({
-				where: { id: userId },
-				select: { id: true, email: true },
-			});
-			await prisma.$disconnect();
-			return user;
-		}
-
-		case 'mongodb': {
-			const { MongoClient, ObjectId } = await import('mongodb');
-			const client = new MongoClient(process.env.MONGODB_URI!);
-			await client.connect();
-
-			const db = client.db(process.env.MONGODB_DATABASE);
-			const user = await db
-				.collection('users')
-				.findOne(
-					{ _id: new ObjectId(userId) },
-					{ projection: { _id: 1, email: 1 } }
-				);
-
-			await client.close();
-			return user ? { id: user._id.toString(), email: user.email } : null;
-		}
-
-		case 'supabase': {
-			const { createClient } = await import('@/lib/supabase/server');
-			const supabase = await createClient();
-			const { data: user } = await supabase
-				.from('profiles')
-				.select('id, email')
-				.eq('id', userId)
-				.single();
-
-			return user;
-		}
-
-		default:
-			throw new Error(`Database provider ${provider} not supported`);
-	}
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, email: true },
+	});
+	await prisma.$disconnect();
+	return user;
 };
 
 /**
  * Create LemonSqueezy checkout session
- * Supports all auth and database providers
+ * Uses Prisma database and Better Auth
  */
 export async function POST(req: NextRequest) {
 	try {
@@ -104,7 +50,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Get user session from configured auth provider
+		// Get user session from Better Auth
 		const session = await getAuthSession(req);
 
 		let userId: string | undefined;

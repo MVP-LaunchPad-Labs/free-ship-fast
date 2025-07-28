@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createCheckoutSession } from '@/lib/stripe/utils';
-import { getDatabaseConfig, getAuthConfig } from '@/lib/config-utils';
+import { auth } from '@/lib/auth';
+import { PrismaClient } from '@/prisma/generated/prisma';
 
 // Simple user data interface
 interface User {
@@ -9,119 +10,36 @@ interface User {
 	customer_id?: string;
 }
 
-// Auth handlers for different providers
-const getAuthSession = async (req: NextRequest) => {
-	const { provider } = getAuthConfig();
+const prisma = new PrismaClient();
 
-	switch (provider) {
-		case 'better-auth': {
-			const { auth } = await import('@/lib/auth');
-			return await auth.api.getSession({ headers: req.headers });
-		}
-		case 'supabase': {
-			const { createClient } = await import('@/lib/supabase/server');
-			const supabase = await createClient();
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			return user ? { user: { id: user.id, email: user.email } } : null;
-		}
-		default:
-			return null;
-	}
+// Auth handler for Better Auth
+const getAuthSession = async (req: NextRequest) => {
+	return await auth.api.getSession({ headers: req.headers });
 };
 
-// Database handlers for different providers
+// Database handler for Prisma
 const getUserFromDatabase = async (userId: string): Promise<User | null> => {
-	const { provider } = getDatabaseConfig();
-
-	switch (provider) {
-		case 'prisma': {
-			const { PrismaClient } = await import('@/prisma/generated/prisma');
-			const prisma = new PrismaClient();
-			const user = await prisma.user.findUnique({
-				where: { id: userId },
-				select: { id: true, email: true, customer_id: true },
-			});
-			await prisma.$disconnect();
-			return user
-				? {
-						id: user.id,
-						email: user.email,
-						customer_id: user.customer_id || undefined,
-					}
-				: null;
-		}
-
-		case 'mongodb': {
-			const { MongoClient, ObjectId } = await import('mongodb');
-			const client = new MongoClient(process.env.MONGODB_URI!);
-			await client.connect();
-
-			const db = client.db(process.env.MONGODB_DATABASE);
-			const user = await db
-				.collection('users')
-				.findOne(
-					{ _id: new ObjectId(userId) },
-					{ projection: { _id: 1, email: 1, customer_id: 1 } }
-				);
-
-			await client.close();
-			return user
-				? {
-						id: user._id.toString(),
-						email: user.email,
-						customer_id: user.customer_id || undefined,
-					}
-				: null;
-		}
-
-		case 'supabase': {
-			const { createClient } = await import('@/lib/supabase/server');
-			const supabase = await createClient();
-
-			// Try to find existing profile
-			const { data: profile } = await supabase
-				.from('profiles')
-				.select('id, email, customer_id')
-				.eq('id', userId)
-				.single();
-
-			// If no profile exists, create one with email from auth
-			if (!profile) {
-				const {
-					data: { user: authUser },
-				} = await supabase.auth.getUser();
-
-				const { data: newProfile, error } = await supabase
-					.from('profiles')
-					.insert([{ id: userId, email: authUser?.email }])
-					.select('id, email, customer_id')
-					.single();
-
-				if (error) {
-					console.error('Failed to create profile:', error);
-					throw new Error('Failed to create user profile');
-				}
-
-				return newProfile;
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { id: true, email: true, customer_id: true },
+	});
+	await prisma.$disconnect();
+	return user
+		? {
+				id: user.id,
+				email: user.email,
+				customer_id: user.customer_id || undefined,
 			}
-
-			return profile;
-		}
-
-		default:
-			throw new Error(`Database provider ${provider} not supported`);
-	}
+		: null;
 };
 
 /**
  * Create Stripe checkout session
- * Supports all auth and database providers
+ * Uses Prisma database and Better Auth
  */
 export async function POST(req: NextRequest) {
 	try {
-		// Get user session from configured auth provider
+		// Get user session from Better Auth
 		const session = await getAuthSession(req);
 
 		if (!session?.user?.id) {

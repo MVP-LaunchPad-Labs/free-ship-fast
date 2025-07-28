@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { headers } from 'next/headers';
-import { getDatabaseConfig } from '@/lib/config-utils';
+import { prisma } from '@/lib/db/prisma/client';
 
 // Database abstraction layer
 interface WaitlistDatabase {
@@ -13,9 +13,7 @@ interface WaitlistDatabase {
 	}): Promise<void>;
 }
 
-// Import the appropriate database implementation
-// For Prisma:
-import { prisma } from '@/lib/db/prisma/client';
+// Prisma implementation
 const prismaDb: WaitlistDatabase = {
 	async findWaitlistByEmail(email: string) {
 		const waitlist = await prisma.waitlist.findUnique({
@@ -30,69 +28,6 @@ const prismaDb: WaitlistDatabase = {
 		});
 	},
 };
-
-// For MongoDB:
-import { mongo } from '@/lib/db/mongodb/client';
-const mongoDb: WaitlistDatabase = {
-	async findWaitlistByEmail(email: string) {
-		const db = mongo.db(process.env.MONGODB_DATABASE);
-		const waitlist = await db
-			.collection('waitlist')
-			.findOne({ email }, { projection: { email: 1 } });
-		return waitlist ? { email: waitlist.email } : null;
-	},
-	async createWaitlist(data) {
-		const db = mongo.db(process.env.MONGODB_DATABASE);
-		await db.collection('waitlist').insertOne(data);
-	},
-};
-
-// For Supabase:
-import { createClient } from '@/lib/supabase/client';
-const supabaseDb: WaitlistDatabase = {
-	async findWaitlistByEmail(email: string) {
-		const supabase = createClient();
-		const { data: waitlist } = await supabase
-			.from('waitlist')
-			.select('email')
-			.eq('email', email)
-			.single();
-		return waitlist;
-	},
-	async createWaitlist(data) {
-		const supabase = createClient();
-		const { error } = await supabase.from('waitlist').insert([
-			{
-				email: data.email,
-				created_at: data.createdAt.toISOString(),
-				ip: data.ip,
-				user_agent: data.userAgent,
-			},
-		]);
-
-		if (error) {
-			throw new Error(`Failed to create waitlist entry: ${error.message}`);
-		}
-	},
-};
-
-// Automatically choose database implementation based on config
-const getDatabaseImplementation = (): WaitlistDatabase => {
-	const { provider } = getDatabaseConfig();
-
-	switch (provider) {
-		case 'prisma':
-			return prismaDb;
-		case 'mongodb':
-			return mongoDb;
-		case 'supabase':
-			return supabaseDb;
-		default:
-			throw new Error(`Database provider ${provider} not implemented`);
-	}
-};
-
-const db: WaitlistDatabase = getDatabaseImplementation();
 
 // This route is used to store the waitlist that are generated from the landing page.
 // The API call is initiated by <ButtonLead /> component
@@ -114,7 +49,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		// Check for duplicate email to prevent spam
-		const existingWaitlist = await db.findWaitlistByEmail(body.email);
+		const existingWaitlist = await prismaDb.findWaitlistByEmail(body.email);
 		if (existingWaitlist) {
 			return NextResponse.json(
 				{ error: 'Email already registered' },
@@ -131,7 +66,7 @@ export async function POST(req: NextRequest) {
 		const userAgent = headersList.get('user-agent') || 'unknown';
 
 		// Insert with timestamp and spam prevention data
-		await db.createWaitlist({
+		await prismaDb.createWaitlist({
 			email: body.email,
 			createdAt: new Date(),
 			ip,

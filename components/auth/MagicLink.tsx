@@ -4,23 +4,16 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
-import { authClient } from '@/lib/auth-client';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from '@/components/ui/form';
-import config from '@/config';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { auth } from '@/lib/auth';
+import { Mail, RefreshCw } from 'lucide-react';
 
 const emailSchema = z.object({
-	email: z.email('Please enter a valid email address'),
+	email: z.string().email('Please enter a valid email address'),
 });
 
 type EmailForm = z.infer<typeof emailSchema>;
@@ -32,135 +25,54 @@ interface MagicLinkProps {
 }
 
 const ERROR_MESSAGES = {
-	TOO_MANY_REQUESTS: 'Too many attempts. Wait a few minutes and try again.',
 	INVALID_EMAIL: 'Please enter a valid email address.',
-	NETWORK_ERROR: 'Connection error. Check your internet and try again.',
-	DEFAULT: 'Something went wrong. Please try again.',
+	GENERIC: 'Failed to send magic link. Please try again.',
+	TOO_MANY_REQUESTS: 'Too many attempts. Please wait before trying again.',
 	MAX_RESET_ATTEMPTS:
-		'Too many reset attempts. Please wait before trying again.',
+		'Maximum reset attempts reached. Please refresh the page.',
 } as const;
 
-// Magic link abstraction layer
-interface MagicLinkProvider {
-	sendMagicLink(email: string, redirectUrl: string): Promise<void>;
-}
-
-// Better Auth magic link implementation
-const betterAuthMagicLink: MagicLinkProvider = {
-	async sendMagicLink(email: string, redirectUrl: string) {
-		await authClient.signIn.magicLink({
-			email,
-			callbackURL: redirectUrl,
-		});
-	},
+const handleError = (error: unknown) => {
+	const message =
+		error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC;
+	toast.error(message);
 };
 
-// Supabase magic link implementation
-const supabaseMagicLink: MagicLinkProvider = {
-	async sendMagicLink(email: string, redirectUrl: string) {
-		const supabase = createClient();
-		const { error } = await supabase.auth.signInWithOtp({
-			email,
-			options: {
-				emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${redirectUrl}`,
-			},
-		});
-
-		if (error) {
-			throw error;
-		}
-	},
-};
-
-// Automatically choose magic link implementation based on config
-const getMagicLinkProvider = (): MagicLinkProvider => {
-	switch (config.services.auth) {
-		case 'supabase':
-			return supabaseMagicLink;
-		case 'better-auth':
-			return betterAuthMagicLink;
-		default:
-			return betterAuthMagicLink; // Default fallback
-	}
-};
-
-const SuccessState = ({
-	email,
-	onReset,
-}: {
+interface SuccessStateProps {
 	email: string;
 	onReset: () => void;
-}) => (
-	<div className='text-center space-y-3 min-h-[110px] flex flex-col justify-center items-center'>
-		<div className='text-sm text-green-600'>✓ Magic link sent to {email}</div>
-		<div className='text-xs text-muted-foreground'>
-			Check your inbox and spam folder
-		</div>
-		<Button
-			variant='outline'
-			size='sm'
-			onClick={onReset}
-		>
-			Send to different email
-		</Button>
-	</div>
-);
+}
 
-const EmailForm = ({
-	form,
-	isLoading,
-	onSubmit,
-}: {
-	form: ReturnType<typeof useForm<EmailForm>>;
-	isLoading: boolean;
-	onSubmit: (data: EmailForm) => void;
-	className?: string;
-}) => (
-	<Form {...form}>
-		<form
-			onSubmit={form.handleSubmit(onSubmit)}
-			className='space-y-4 min-h-[110px] '
-		>
-			<FormField
-				control={form.control}
-				name='email'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Email</FormLabel>
-						<FormControl>
-							<Input
-								type='email'
-								placeholder='you@example.com'
-								disabled={isLoading}
-								autoComplete='email'
-								{...field}
-							/>
-						</FormControl>
-						<FormMessage />
-					</FormItem>
-				)}
-			/>
+const SuccessState = ({ email, onReset }: SuccessStateProps) => (
+	<Card className='border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950'>
+		<CardContent className='p-6 text-center space-y-4'>
+			<div className='w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto'>
+				<Mail className='w-6 h-6 text-green-600 dark:text-green-400' />
+			</div>
+			<div className='space-y-2'>
+				<h3 className='font-medium text-green-900 dark:text-green-100'>
+					Check your email
+				</h3>
+				<p className='text-sm text-green-700 dark:text-green-300'>
+					We've sent a magic link to{' '}
+					<span className='font-medium'>{email}</span>
+				</p>
+				<p className='text-xs text-green-600 dark:text-green-400'>
+					Click the link in the email to sign in. You can close this tab.
+				</p>
+			</div>
 			<Button
-				type='submit'
-				className='w-full'
-				loading={isLoading}
-				disabled={isLoading}
+				onClick={onReset}
+				variant='outline'
+				size='sm'
+				className='mt-4 border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900'
 			>
-				Continue
+				<RefreshCw className='w-4 h-4 mr-2' />
+				Try different email
 			</Button>
-		</form>
-	</Form>
+		</CardContent>
+	</Card>
 );
-
-const handleError = (error: any) => {
-	if (error?.code && error.code in ERROR_MESSAGES) {
-		toast.error(ERROR_MESSAGES[error.code as keyof typeof ERROR_MESSAGES]);
-	} else if (error?.message?.includes('network')) {
-		toast.error(ERROR_MESSAGES.NETWORK_ERROR);
-	} else {
-		toast.error(ERROR_MESSAGES.DEFAULT);
-	}
-};
 
 export default function MagicLink({
 	onSuccess,
@@ -172,7 +84,6 @@ export default function MagicLink({
 	const [sendAttempts, setSendAttempts] = useState(0);
 	const [resetAttempts, setResetAttempts] = useState(0);
 	const [lastSentTime, setLastSentTime] = useState<number | null>(null);
-	const magicLinkProvider = getMagicLinkProvider();
 
 	const MAX_SEND_ATTEMPTS = 5;
 	const MAX_RESET_ATTEMPTS = 3;
@@ -200,7 +111,15 @@ export default function MagicLink({
 
 		setIsLoading(true);
 		try {
-			await magicLinkProvider.sendMagicLink(data.email, redirectUrl);
+			await auth.api.signInMagicLink({
+				body: {
+					email: data.email,
+					callbackURL: redirectUrl,
+				},
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
 			toast.success('Check your email and click the link to sign in.');
 			setIsSent(true);
 			setSendAttempts((prev) => prev + 1);
@@ -234,12 +153,40 @@ export default function MagicLink({
 	}
 
 	return (
-		<div className={className}>
-			<EmailForm
-				form={form}
-				isLoading={isLoading}
-				onSubmit={onSubmit}
-			/>
-		</div>
+		<form
+			onSubmit={form.handleSubmit(onSubmit)}
+			className={className}
+		>
+			<div className='space-y-4'>
+				<div className='space-y-2'>
+					<Label htmlFor='email'>Email</Label>
+					<Input
+						id='email'
+						type='email'
+						placeholder='Enter your email'
+						{...form.register('email')}
+						className={
+							form.formState.errors.email
+								? 'border-red-500 focus:border-red-500'
+								: ''
+						}
+					/>
+					{form.formState.errors.email && (
+						<p className='text-sm text-red-500'>
+							{form.formState.errors.email.message}
+						</p>
+					)}
+				</div>
+				<Button
+					type='submit'
+					className='w-full'
+					loading={isLoading}
+					loadingText='Sending link...'
+				>
+					<Mail className='w-4 h-4 mr-2' />
+					Send Magic Link
+				</Button>
+			</div>
+		</form>
 	);
 }

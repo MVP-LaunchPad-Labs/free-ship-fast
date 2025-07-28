@@ -1,8 +1,11 @@
-import { updateSession } from '@/lib/supabase/middleware';
 import { type NextRequest } from 'next/server';
 
+// Better Auth handles session management automatically
+// No custom middleware needed for basic auth functionality
 export async function middleware(request: NextRequest) {
-	return await updateSession(request);
+	// If you need custom middleware logic, add it here
+	// For now, just pass through all requests
+	return;
 }
 
 export const config = {
