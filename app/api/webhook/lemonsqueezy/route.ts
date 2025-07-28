@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
 import { verifyWebhookSignature } from '@/lib/lemonSqueezy/utils';
-import { PrismaClient } from '@/prisma/generated/prisma';
+import { ObjectId } from 'mongodb';
+import { mongo } from '@/lib/db/mongodb/client';
 import config from '@/config';
 
-const prisma = new PrismaClient();
-
-// Database abstraction layer
 interface UserDatabase {
 	updateUser(
 		userId: string,
@@ -24,52 +22,51 @@ interface UserDatabase {
 	createUser(email: string): Promise<{ id: string; email: string } | null>;
 }
 
-// Prisma implementation
-const userDatabase: UserDatabase = {
-	async updateUser(userId: string, data) {
-		await prisma.user.update({
-			where: { id: userId },
-			data,
-		});
-	},
-	async updateUsersByCustomerId(customerId: string, data) {
-		await prisma.user.updateMany({
-			where: { customer_id: customerId },
-			data,
-		});
-	},
-	async findUserByCustomerId(customerId: string) {
-		const user = await prisma.user.findFirst({
-			where: { customer_id: customerId },
-			select: { id: true, email: true },
-		});
-		return user;
-	},
-	async findUserByEmail(email: string) {
-		const user = await prisma.user.findFirst({
-			where: { email },
-			select: { id: true, email: true },
-		});
-		return user;
-	},
-	async createUser(email: string) {
-		// Generate a unique ID for the user
-		const userId = crypto.randomUUID();
-		const user = await prisma.user.create({
-			data: {
-				id: userId,
+const getUserDatabase = (): UserDatabase => {
+	const db = mongo.db(process.env.MONGODB_DATABASE);
+
+	return {
+		async updateUser(userId: string, data) {
+			await db
+				.collection('users')
+				.updateOne({ _id: new ObjectId(userId) }, { $set: data });
+		},
+		async updateUsersByCustomerId(customerId: string, data) {
+			await db
+				.collection('users')
+				.updateMany({ customer_id: customerId }, { $set: data });
+		},
+		async findUserByCustomerId(customerId: string) {
+			const user = await db
+				.collection('users')
+				.findOne(
+					{ customer_id: customerId },
+					{ projection: { _id: 1, email: 1 } }
+				);
+
+			return user ? { id: user._id.toString(), email: user.email } : null;
+		},
+		async findUserByEmail(email: string) {
+			const user = await db
+				.collection('users')
+				.findOne({ email }, { projection: { _id: 1, email: 1 } });
+
+			return user ? { id: user._id.toString(), email: user.email } : null;
+		},
+		async createUser(email: string) {
+			const result = await db.collection('users').insertOne({
 				email,
-				name: email.split('@')[0], // Use email prefix as name
+				name: email.split('@')[0],
 				emailVerified: false,
-			},
-			select: { id: true, email: true },
-		});
-		return user;
-	},
+				createdAt: new Date(),
+			});
+
+			return { id: result.insertedId.toString(), email };
+		},
+	};
 };
 
-// Webhook event handlers
-const handleOrderCreated = async (payload: any) => {
+const handleOrderCreated = async (payload: any, db: UserDatabase) => {
 	const customerId = payload.data.attributes.customer_id.toString();
 	const userId = payload.meta?.custom_data?.userId;
 	const email = payload.data.attributes.user_email;
@@ -90,42 +87,42 @@ const handleOrderCreated = async (payload: any) => {
 
 	let user;
 	if (!userId) {
-		// Check if user already exists
-		user = await userDatabase.findUserByEmail(email);
+		user = await db.findUserByEmail(email);
 
 		if (!user) {
-			// Create a new user
-			user = await userDatabase.createUser(email);
+			user = await db.createUser(email);
 		}
 	} else {
-		// Find user by ID
 		user =
-			(await userDatabase.findUserByCustomerId(userId)) ||
-			(await userDatabase.findUserByEmail(email));
+			(await db.findUserByCustomerId(userId)) ||
+			(await db.findUserByEmail(email));
 	}
 
 	if (!user) return;
 
-	await userDatabase.updateUser(user.id, {
+	await db.updateUser(user.id, {
 		customer_id: customerId,
 		variant_id: variantId,
 		has_access: true,
 	});
 };
 
-const handleSubscriptionCancelled = async (payload: any) => {
+const handleSubscriptionCancelled = async (payload: any, db: UserDatabase) => {
 	const customerId = payload.data.attributes.customer_id.toString();
 
-	const user = await userDatabase.findUserByCustomerId(customerId);
+	const user = await db.findUserByCustomerId(customerId);
 
 	if (!user) return;
 
-	await userDatabase.updateUser(user.id, {
+	await db.updateUser(user.id, {
 		has_access: false,
 	});
 };
 
-const webhookHandlers: Record<string, (payload: any) => Promise<void>> = {
+const webhookHandlers: Record<
+	string,
+	(payload: any, db: UserDatabase) => Promise<void>
+> = {
 	order_created: handleOrderCreated,
 	subscription_cancelled: handleSubscriptionCancelled,
 };
@@ -143,7 +140,6 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Verify webhook authenticity using utility function
 		const isValid = verifyWebhookSignature(rawPayload, webhookSignature);
 
 		if (!isValid) {
@@ -153,14 +149,14 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Parse the payload
 		const payload = JSON.parse(rawPayload);
 		const eventName = payload.meta.event_name;
 
-		// Process event if handler exists
+		const db = getUserDatabase();
+
 		const eventHandler = webhookHandlers[eventName];
 		if (eventHandler) {
-			await eventHandler(payload);
+			await eventHandler(payload, db);
 		}
 
 		return NextResponse.json({ received: true });
@@ -168,7 +164,5 @@ export async function POST(req: NextRequest) {
 		const err = error as Error;
 		console.error(`LemonSqueezy webhook processing failed: ${err.message}`);
 		return NextResponse.json({ error: err.message }, { status: 400 });
-	} finally {
-		await prisma.$disconnect();
 	}
 }

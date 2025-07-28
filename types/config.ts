@@ -1,4 +1,4 @@
-export type DatabaseProvider = 'prisma';
+export type DatabaseProvider = 'mongodb';
 export type AuthProvider = 'better-auth';
 export type PaymentProvider = 'stripe' | 'lemonsqueezy';
 export type EmailProvider = 'resend' | 'nodemailer' | 'sendgrid';
@@ -18,8 +18,9 @@ export interface ConfigProps {
 
 	// Database configurations
 	database: {
-		prisma: {
-			databaseUrl: string;
+		mongodb: {
+			connectionString: string;
+			databaseName: string;
 		};
 	};
 
@@ -40,33 +41,26 @@ export interface ConfigProps {
 			publishableKey: string;
 			secretKey: string;
 			webhookSecret: string;
-			plans: {
-				isFeatured?: boolean;
+			plans: Array<{
 				priceId: string;
 				name: string;
 				description?: string;
 				price: number;
-				priceAnchor?: number;
-				features: {
-					name: string;
-				}[];
-			}[];
+				currency: string;
+				interval?: 'month' | 'year';
+			}>;
 		};
 		lemonsqueezy?: {
 			apiKey: string;
 			storeId: string;
 			webhookSecret: string;
-			plans: {
-				isFeatured?: boolean;
+			plans: Array<{
 				variantId: string;
 				name: string;
 				description?: string;
 				price: number;
-				priceAnchor?: number;
-				features: {
-					name: string;
-				}[];
-			}[];
+				currency: string;
+			}>;
 		};
 	};
 
@@ -84,6 +78,7 @@ export interface ConfigProps {
 				user: string;
 				pass: string;
 			};
+			fromEmail: string;
 		};
 		sendgrid?: {
 			apiKey: string;
@@ -91,15 +86,26 @@ export interface ConfigProps {
 		};
 	};
 
-	// Analytics configurations (optional)
-	analytics?: {
-		umami?: {
-			websiteId: string;
-			url: string;
-		};
-		posthog?: {
-			key: string;
-			host: string;
-		};
+	// Style configurations
+	style: {
+		theme: 'light' | 'dark' | 'system';
+		accentColor: string;
+		font: string;
+	};
+
+	// SEO configurations
+	seo: {
+		keywords: string[];
+		twitterHandle?: string;
+		ogImage?: string;
+	};
+
+	// Features
+	features: {
+		analytics: boolean;
+		blog: boolean;
+		testimonials: boolean;
+		newsletter: boolean;
+		waitlist: boolean;
 	};
 }

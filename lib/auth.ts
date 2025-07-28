@@ -1,27 +1,20 @@
-import { PrismaClient } from '@/prisma/generated/prisma';
 import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { nextCookies } from 'better-auth/next-js';
 import { magicLink } from 'better-auth/plugins';
 import { sendMagicLinkEmail } from './email/sendEmail';
+import { mongo } from './db/mongodb/client';
 
-/**
- * Database client initialization - PostgreSQL/MySQL/SQLite with Prisma ORM
- */
-const prisma = new PrismaClient();
+const db = mongo.db(process.env.MONGODB_DATABASE);
 
 export const auth = betterAuth({
 	/**
-	 * DATABASE ADAPTER CONFIGURATION
-	 * Using Prisma adapter for type safety and migrations
+	 * MongoDB adapter configuration
 	 */
-	database: prismaAdapter(prisma, {
-		provider: 'postgresql', // Change to: 'mysql', 'sqlite', etc.
-	}),
+	database: mongodbAdapter(db),
 
 	/**
 	 * SOCIAL AUTHENTICATION PROVIDERS
-	 * Add more providers as needed (GitHub, Discord, etc.)
 	 */
 	socialProviders: {
 		google: {
@@ -38,7 +31,6 @@ export const auth = betterAuth({
 		/** Magic link authentication (passwordless) */
 		magicLink({
 			sendMagicLink: async ({ email, token, url }, request) => {
-				/* Custom email sending logic */
 				await sendMagicLinkEmail(email, url, { email });
 			},
 		}),

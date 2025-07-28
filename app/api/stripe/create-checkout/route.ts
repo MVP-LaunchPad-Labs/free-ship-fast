@@ -1,32 +1,31 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createCheckoutSession } from '@/lib/stripe/utils';
+import { ObjectId } from 'mongodb';
 import { auth } from '@/lib/auth';
-import { PrismaClient } from '@/prisma/generated/prisma';
+import { mongo } from '@/lib/db/mongodb/client';
 
-// Simple user data interface
 interface User {
 	id: string;
 	email: string;
 	customer_id?: string;
 }
 
-const prisma = new PrismaClient();
-
-// Auth handler for Better Auth
 const getAuthSession = async (req: NextRequest) => {
 	return await auth.api.getSession({ headers: req.headers });
 };
 
-// Database handler for Prisma
 const getUserFromDatabase = async (userId: string): Promise<User | null> => {
-	const user = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { id: true, email: true, customer_id: true },
-	});
-	await prisma.$disconnect();
+	const db = mongo.db(process.env.MONGODB_DATABASE);
+	const user = await db
+		.collection('users')
+		.findOne(
+			{ _id: new ObjectId(userId) },
+			{ projection: { _id: 1, email: 1, customer_id: 1 } }
+		);
+
 	return user
 		? {
-				id: user.id,
+				id: user._id.toString(),
 				email: user.email,
 				customer_id: user.customer_id || undefined,
 			}
@@ -35,11 +34,9 @@ const getUserFromDatabase = async (userId: string): Promise<User | null> => {
 
 /**
  * Create Stripe checkout session
- * Uses Prisma database and Better Auth
  */
 export async function POST(req: NextRequest) {
 	try {
-		// Get user session from Better Auth
 		const session = await getAuthSession(req);
 
 		if (!session?.user?.id) {
@@ -52,7 +49,6 @@ export async function POST(req: NextRequest) {
 		const body = await req.json();
 		const { priceId, mode, successUrl, cancelUrl } = body;
 
-		// Validate required fields
 		if (!priceId) {
 			return NextResponse.json(
 				{ error: 'Price ID is required' },
@@ -74,14 +70,12 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Get user from database
 		const user = await getUserFromDatabase(session.user.id);
 
 		if (!user) {
 			return NextResponse.json({ error: 'User not found' }, { status: 404 });
 		}
 
-		// Create checkout session
 		const checkoutUrl = await createCheckoutSession({
 			priceId,
 			mode,

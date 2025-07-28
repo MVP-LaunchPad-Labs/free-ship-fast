@@ -1,22 +1,39 @@
 import config from '@/config';
+import type {
+	DatabaseProvider,
+	AuthProvider,
+	PaymentProvider,
+	EmailProvider,
+} from '@/types/config';
 
 /**
- * Get the current database configuration (Prisma only)
+ * Get the current database configuration (MongoDB only)
  */
 export function getDatabaseConfig() {
-	return {
-		provider: 'prisma' as const,
-		config: config.database.prisma,
-	};
+	const provider: DatabaseProvider = 'mongodb';
+	const dbConfig = config.database.mongodb;
+
+	if (!dbConfig) {
+		throw new Error(`Database configuration for ${provider} not found`);
+	}
+
+	return { provider, config: dbConfig };
 }
 
 /**
  * Get the current auth configuration (Better Auth only)
  */
 export function getAuthConfig() {
+	const provider: AuthProvider = 'better-auth';
+	const authConfig = config.auth.betterAuth;
+
+	if (!authConfig) {
+		throw new Error(`Auth configuration for ${provider} not found`);
+	}
+
 	return {
-		provider: 'better-auth' as const,
-		config: config.auth.betterAuth,
+		provider,
+		config: authConfig,
 		loginUrl: config.auth.loginUrl,
 		callbackUrl: config.auth.callbackUrl,
 	};
@@ -51,13 +68,30 @@ export function getEmailConfig() {
 }
 
 /**
- * Get all active service providers
+ * Check if a feature is enabled
  */
-export function getActiveServices() {
+export function isFeatureEnabled(
+	feature: keyof typeof config.features
+): boolean {
+	return config.features[feature];
+}
+
+/**
+ * Get service provider
+ */
+export function getServiceProvider(service: keyof typeof config.services) {
+	return config.services[service];
+}
+
+/**
+ * Get app metadata
+ */
+export function getAppMetadata() {
 	return {
-		database: config.services.database,
-		auth: config.services.auth,
-		payment: config.services.payment,
-		email: config.services.email,
+		name: config.appName,
+		description: config.appDescription,
+		domain: config.domainName,
+		style: config.style,
+		seo: config.seo,
 	};
 }
