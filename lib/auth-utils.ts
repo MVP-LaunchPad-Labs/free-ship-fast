@@ -1,11 +1,10 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { createClient } from '@/lib/supabase/server';
 
 export const getSession = async () => {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
+	const supabase = await createClient();
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
 	return session;
 };
 

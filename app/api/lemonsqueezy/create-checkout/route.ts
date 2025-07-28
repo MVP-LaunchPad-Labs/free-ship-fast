@@ -1,7 +1,6 @@
 import { createCheckoutSession } from '@/lib/lemonSqueezy/utils';
-import { auth } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/prisma/generated/prisma';
 
 // Simple user data interface
 interface User {
@@ -9,26 +8,30 @@ interface User {
 	email: string;
 }
 
-const prisma = new PrismaClient();
-
-// Auth handler for Better Auth
+// Get user session from Supabase
 const getAuthSession = async (req: NextRequest) => {
-	return await auth.api.getSession({ headers: req.headers });
+	const supabase = await createClient();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+	return user ? { user: { id: user.id, email: user.email } } : null;
 };
 
-// Database handler for Prisma
+// Get user from Supabase database
 const getUserFromDatabase = async (userId: string): Promise<User | null> => {
-	const user = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { id: true, email: true },
-	});
-	await prisma.$disconnect();
+	const supabase = await createClient();
+	const { data: user } = await supabase
+		.from('profiles')
+		.select('id, email')
+		.eq('id', userId)
+		.single();
+
 	return user;
 };
 
 /**
  * Create LemonSqueezy checkout session
- * Uses Prisma database and Better Auth
+ * Uses Supabase for authentication and database
  */
 export async function POST(req: NextRequest) {
 	try {
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		// Get user session from Better Auth
+		// Get user session from Supabase
 		const session = await getAuthSession(req);
 
 		let userId: string | undefined;

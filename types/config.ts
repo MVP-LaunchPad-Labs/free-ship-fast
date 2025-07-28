@@ -1,37 +1,21 @@
-export type DatabaseProvider = 'prisma';
-export type AuthProvider = 'better-auth';
-export type PaymentProvider = 'stripe' | 'lemonsqueezy';
-export type EmailProvider = 'resend' | 'nodemailer' | 'sendgrid';
-
 export interface ConfigProps {
 	appName: string;
 	appDescription: string;
 	domainName: string;
 
-	// Service provider selections
-	services: {
-		database: DatabaseProvider;
-		auth: AuthProvider;
-		payment: PaymentProvider;
-		email: EmailProvider;
+	// Supabase configuration
+	supabase: {
+		url: string;
+		anonKey: string;
+		serviceRoleKey: string;
 	};
 
-	// Database configurations
-	database: {
-		prisma: {
-			databaseUrl: string;
-		};
-	};
-
-	// Auth configurations
+	// Auth configuration
 	auth: {
 		loginUrl: string;
 		callbackUrl: string;
-		betterAuth: {
-			secret: string;
-			baseUrl: string;
-			providers: ('google' | 'github' | 'discord')[];
-		};
+		redirectTo: string;
+		providers: ('google' | 'github' | 'discord')[];
 	};
 
 	// Payment configurations
@@ -70,36 +54,14 @@ export interface ConfigProps {
 		};
 	};
 
-	// Email configurations
+	// Email configuration
 	email: {
 		resend?: {
 			apiKey: string;
-			fromEmail: string;
-		};
-		nodemailer?: {
-			host: string;
-			port: number;
-			secure: boolean;
-			auth: {
-				user: string;
-				pass: string;
-			};
-		};
-		sendgrid?: {
-			apiKey: string;
-			fromEmail: string;
-		};
-	};
-
-	// Analytics configurations (optional)
-	analytics?: {
-		umami?: {
-			websiteId: string;
-			url: string;
-		};
-		posthog?: {
-			key: string;
-			host: string;
+			fromNoReply: string;
+			fromAdmin: string;
+			supportEmail?: string;
+			forwardRepliesTo?: string;
 		};
 	};
 }

@@ -1,34 +1,52 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { authClient } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
-import config from "@/config";
+import * as React from 'react';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import config from '@/config';
 
 interface SignInButtonProps {
 	extraStyle?: string;
 }
 
 /**
- * Sign-in button component using better-auth
+ * Sign-in button component using Supabase
  *
  * Features:
  * - Automatically redirects authenticated users to dashboard
- * - Uses better-auth session management
+ * - Uses Supabase session management
  * - Styled with shadcn/ui button component
  * - Supports custom styling via extraStyle prop
  */
 const SignInButton = ({ extraStyle }: SignInButtonProps) => {
-	const { data: session } = authClient.useSession();
+	const [session, setSession] = useState<any>(null);
+	const supabase = createClient();
+
+	useEffect(() => {
+		// Get initial session
+		supabase.auth.getSession().then(({ data: { session } }) => {
+			setSession(session);
+		});
+
+		// Listen for auth changes
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange((_event, session) => {
+			setSession(session);
+		});
+
+		return () => subscription.unsubscribe();
+	}, [supabase.auth]);
 
 	// If user is authenticated, redirect to dashboard
 	if (session) {
 		return (
 			<Button
 				asChild
-				variant="default"
+				variant='default'
 				className={extraStyle}
-				data-slot="dashboard-button"
+				data-slot='dashboard-button'
 			>
 				<a href={config.auth.callbackUrl}>Dashboard</a>
 			</Button>
@@ -39,9 +57,9 @@ const SignInButton = ({ extraStyle }: SignInButtonProps) => {
 	return (
 		<Button
 			asChild
-			variant="default"
+			variant='default'
 			className={extraStyle}
-			data-slot="signin-button"
+			data-slot='signin-button'
 		>
 			<a href={config.auth.loginUrl}>Get Started</a>
 		</Button>

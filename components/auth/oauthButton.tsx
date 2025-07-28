@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authClient } from '@/lib/auth-client';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import GoogleIcon from '@/components/icons/oauth/google';
 import GitHubIcon from '@/components/icons/oauth/github';
@@ -21,6 +21,21 @@ const providerIcons = {
 	github: GitHubIcon,
 };
 
+// Sign in with OAuth using Supabase
+const signInWithOAuth = async (provider: 'google' | 'github') => {
+	const supabase = createClient();
+	const { error } = await supabase.auth.signInWithOAuth({
+		provider,
+		options: {
+			redirectTo: config.auth.redirectTo,
+		},
+	});
+
+	if (error) {
+		throw error;
+	}
+};
+
 export default function OAuthButton({
 	provider,
 	children,
@@ -34,20 +49,7 @@ export default function OAuthButton({
 	const handleOAuth = async () => {
 		setIsLoading(true);
 		try {
-			await authClient.signIn.social(
-				{
-					provider,
-					callbackURL: config.auth.callbackUrl,
-				},
-				{
-					onSuccess: () => {
-						toast.success('Signed in successfully');
-					},
-					onError: (error) => {
-						toast.error('Sign in failed');
-					},
-				}
-			);
+			await signInWithOAuth(provider);
 		} catch (error) {
 			console.error(`${provider} sign in failed:`, error);
 			toast.error('Sign in failed');
@@ -58,13 +60,14 @@ export default function OAuthButton({
 
 	return (
 		<Button
+			onClick={handleOAuth}
+			loading={isLoading}
 			variant={variant}
 			size={size}
-			onClick={handleOAuth}
-			disabled={isLoading}
 			className={className}
+			loadingText={`Signing in`}
 		>
-			<ProviderIcon className='mr-2 h-5 w-5' />
+			<ProviderIcon className='mr-2 h-4 w-4' />
 			{children}
 		</Button>
 	);

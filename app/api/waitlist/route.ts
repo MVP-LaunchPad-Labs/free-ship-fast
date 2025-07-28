@@ -1,33 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { headers } from 'next/headers';
-import { prisma } from '@/lib/db/prisma/client';
-
-// Database abstraction layer
-interface WaitlistDatabase {
-	findWaitlistByEmail(email: string): Promise<{ email: string } | null>;
-	createWaitlist(data: {
-		email: string;
-		createdAt: Date;
-		ip: string;
-		userAgent: string;
-	}): Promise<void>;
-}
-
-// Prisma implementation
-const prismaDb: WaitlistDatabase = {
-	async findWaitlistByEmail(email: string) {
-		const waitlist = await prisma.waitlist.findUnique({
-			where: { email },
-			select: { email: true },
-		});
-		return waitlist;
-	},
-	async createWaitlist(data) {
-		await prisma.waitlist.create({
-			data,
-		});
-	},
-};
+import { createClient } from '@/lib/supabase/client';
 
 // This route is used to store the waitlist that are generated from the landing page.
 // The API call is initiated by <ButtonLead /> component
@@ -48,8 +21,15 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		const supabase = createClient();
+
 		// Check for duplicate email to prevent spam
-		const existingWaitlist = await prismaDb.findWaitlistByEmail(body.email);
+		const { data: existingWaitlist } = await supabase
+			.from('waitlist')
+			.select('email')
+			.eq('email', body.email)
+			.single();
+
 		if (existingWaitlist) {
 			return NextResponse.json(
 				{ error: 'Email already registered' },
@@ -66,12 +46,18 @@ export async function POST(req: NextRequest) {
 		const userAgent = headersList.get('user-agent') || 'unknown';
 
 		// Insert with timestamp and spam prevention data
-		await prismaDb.createWaitlist({
-			email: body.email,
-			createdAt: new Date(),
-			ip,
-			userAgent,
-		});
+		const { error } = await supabase.from('waitlist').insert([
+			{
+				email: body.email,
+				created_at: new Date().toISOString(),
+				ip,
+				user_agent: userAgent,
+			},
+		]);
+
+		if (error) {
+			throw new Error(`Failed to create waitlist entry: ${error.message}`);
+		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {

@@ -2,70 +2,62 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
 import { verifyWebhookSignature } from '@/lib/lemonSqueezy/utils';
-import { PrismaClient } from '@/prisma/generated/prisma';
+import { createClient } from '@/lib/supabase/server';
 import config from '@/config';
 
-const prisma = new PrismaClient();
+// Database handlers for Supabase
+const updateUser = async (
+	userId: string,
+	data: { customer_id?: string; variant_id?: string; has_access?: boolean }
+) => {
+	const supabase = await createClient();
+	const updateData: any = {};
+	if (data.customer_id !== undefined) updateData.customer_id = data.customer_id;
+	if (data.variant_id !== undefined) updateData.variant_id = data.variant_id;
+	if (data.has_access !== undefined) updateData.has_access = data.has_access;
 
-// Database abstraction layer
-interface UserDatabase {
-	updateUser(
-		userId: string,
-		data: { customer_id?: string; variant_id?: string; has_access?: boolean }
-	): Promise<void>;
-	updateUsersByCustomerId(
-		customerId: string,
-		data: { has_access?: boolean }
-	): Promise<void>;
-	findUserByCustomerId(
-		customerId: string
-	): Promise<{ id: string; email?: string } | null>;
-	findUserByEmail(email: string): Promise<{ id: string; email: string } | null>;
-	createUser(email: string): Promise<{ id: string; email: string } | null>;
-}
+	const { error } = await supabase
+		.from('profiles')
+		.update(updateData)
+		.eq('id', userId);
 
-// Prisma implementation
-const userDatabase: UserDatabase = {
-	async updateUser(userId: string, data) {
-		await prisma.user.update({
-			where: { id: userId },
-			data,
-		});
-	},
-	async updateUsersByCustomerId(customerId: string, data) {
-		await prisma.user.updateMany({
-			where: { customer_id: customerId },
-			data,
-		});
-	},
-	async findUserByCustomerId(customerId: string) {
-		const user = await prisma.user.findFirst({
-			where: { customer_id: customerId },
-			select: { id: true, email: true },
-		});
-		return user;
-	},
-	async findUserByEmail(email: string) {
-		const user = await prisma.user.findFirst({
-			where: { email },
-			select: { id: true, email: true },
-		});
-		return user;
-	},
-	async createUser(email: string) {
-		// Generate a unique ID for the user
-		const userId = crypto.randomUUID();
-		const user = await prisma.user.create({
-			data: {
-				id: userId,
-				email,
-				name: email.split('@')[0], // Use email prefix as name
-				emailVerified: false,
-			},
-			select: { id: true, email: true },
-		});
-		return user;
-	},
+	if (error) {
+		throw new Error(`Failed to update user: ${error.message}`);
+	}
+};
+
+const findUserByCustomerId = async (customerId: string) => {
+	const supabase = await createClient();
+	const { data: user } = await supabase
+		.from('profiles')
+		.select('id, email')
+		.eq('customer_id', customerId)
+		.single();
+
+	return user;
+};
+
+const findUserByEmail = async (email: string) => {
+	const supabase = await createClient();
+	const { data: user } = await supabase
+		.from('profiles')
+		.select('id, email')
+		.eq('email', email)
+		.single();
+
+	return user;
+};
+
+const createUser = async (email: string) => {
+	const supabase = await createClient();
+	// Create user using Supabase Auth Admin
+	const { data } = await supabase.auth.admin.createUser({
+		email,
+	});
+
+	return data?.user
+		? { id: data.user.id, email: data.user.email || email }
+		: null;
 };
 
 // Webhook event handlers
@@ -91,22 +83,21 @@ const handleOrderCreated = async (payload: any) => {
 	let user;
 	if (!userId) {
 		// Check if user already exists
-		user = await userDatabase.findUserByEmail(email);
+		user = await findUserByEmail(email);
 
 		if (!user) {
 			// Create a new user
-			user = await userDatabase.createUser(email);
+			user = await createUser(email);
 		}
 	} else {
-		// Find user by ID
+		// Find user by ID - for Supabase, this would be in profiles
 		user =
-			(await userDatabase.findUserByCustomerId(userId)) ||
-			(await userDatabase.findUserByEmail(email));
+			(await findUserByCustomerId(userId)) || (await findUserByEmail(email));
 	}
 
 	if (!user) return;
 
-	await userDatabase.updateUser(user.id, {
+	await updateUser(user.id, {
 		customer_id: customerId,
 		variant_id: variantId,
 		has_access: true,
@@ -116,11 +107,11 @@ const handleOrderCreated = async (payload: any) => {
 const handleSubscriptionCancelled = async (payload: any) => {
 	const customerId = payload.data.attributes.customer_id.toString();
 
-	const user = await userDatabase.findUserByCustomerId(customerId);
+	const user = await findUserByCustomerId(customerId);
 
 	if (!user) return;
 
-	await userDatabase.updateUser(user.id, {
+	await updateUser(user.id, {
 		has_access: false,
 	});
 };
@@ -168,7 +159,5 @@ export async function POST(req: NextRequest) {
 		const err = error as Error;
 		console.error(`LemonSqueezy webhook processing failed: ${err.message}`);
 		return NextResponse.json({ error: err.message }, { status: 400 });
-	} finally {
-		await prisma.$disconnect();
 	}
 }

@@ -5,7 +5,7 @@ import {
 	retrieveCheckoutSession,
 	verifyWebhookSignature,
 } from '@/lib/stripe/utils';
-import { PrismaClient } from '@/prisma/generated/prisma';
+import { createClient } from '@/lib/supabase/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 	apiVersion: '2025-06-30.basil',
@@ -13,44 +13,55 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-const prisma = new PrismaClient();
 
-// Database abstraction layer
-interface UserDatabase {
-	updateUser(
-		userId: string,
-		data: { customer_id?: string; price_id?: string; has_access?: boolean }
-	): Promise<void>;
-	updateUsersByCustomerId(
-		customerId: string,
-		data: { has_access?: boolean }
-	): Promise<void>;
-	findUserByCustomerId(
-		customerId: string
-	): Promise<{ id: string; price_id?: string } | null>;
-}
+// Database handler for Supabase
+const updateUser = async (
+	userId: string,
+	data: { customer_id?: string; price_id?: string; has_access?: boolean }
+) => {
+	const supabase = await createClient();
+	const updateData: any = {};
+	if (data.customer_id !== undefined) updateData.customer_id = data.customer_id;
+	if (data.price_id !== undefined) updateData.price_id = data.price_id;
+	if (data.has_access !== undefined) updateData.has_access = data.has_access;
 
-// Prisma implementation
-const userDatabase: UserDatabase = {
-	async updateUser(userId: string, data) {
-		await prisma.user.update({
-			where: { id: userId },
-			data,
-		});
-	},
-	async updateUsersByCustomerId(customerId: string, data) {
-		await prisma.user.updateMany({
-			where: { customer_id: customerId },
-			data,
-		});
-	},
-	async findUserByCustomerId(customerId: string) {
-		const user = await prisma.user.findFirst({
-			where: { customer_id: customerId },
-			select: { id: true, price_id: true },
-		});
-		return user ? { id: user.id, price_id: user.price_id || undefined } : null;
-	},
+	const { error } = await supabase
+		.from('profiles')
+		.update(updateData)
+		.eq('id', userId);
+
+	if (error) {
+		throw new Error(`Failed to update user: ${error.message}`);
+	}
+};
+
+const updateUsersByCustomerId = async (
+	customerId: string,
+	data: { has_access?: boolean }
+) => {
+	const supabase = await createClient();
+	const updateData: any = {};
+	if (data.has_access !== undefined) updateData.has_access = data.has_access;
+
+	const { error } = await supabase
+		.from('profiles')
+		.update(updateData)
+		.eq('customer_id', customerId);
+
+	if (error) {
+		throw new Error(`Failed to update users by customer ID: ${error.message}`);
+	}
+};
+
+const findUserByCustomerId = async (customerId: string) => {
+	const supabase = await createClient();
+	const { data: user } = await supabase
+		.from('profiles')
+		.select('id, price_id')
+		.eq('customer_id', customerId)
+		.single();
+
+	return user ? { id: user.id, price_id: user.price_id || undefined } : null;
 };
 
 // Webhook event handlers
@@ -64,7 +75,7 @@ const handleCheckoutCompleted = async (event: Stripe.Event) => {
 
 	if (!userId || !customerId || !priceId) return;
 
-	await userDatabase.updateUser(userId, {
+	await updateUser(userId, {
 		customer_id: customerId,
 		price_id: priceId,
 		has_access: true,
@@ -75,7 +86,7 @@ const handleSubscriptionDeleted = async (event: Stripe.Event) => {
 	const subscriptionData = event.data.object as Stripe.Subscription;
 	const subscription = await stripe.subscriptions.retrieve(subscriptionData.id);
 
-	await userDatabase.updateUsersByCustomerId(subscription.customer as string, {
+	await updateUsersByCustomerId(subscription.customer as string, {
 		has_access: false,
 	});
 };
@@ -88,11 +99,11 @@ const handleInvoicePaid = async (event: Stripe.Event) => {
 
 	if (!customerId || !priceId) return;
 
-	const user = await userDatabase.findUserByCustomerId(customerId);
+	const user = await findUserByCustomerId(customerId);
 
 	if (!user || user.price_id !== priceId) return;
 
-	await userDatabase.updateUser(user.id, { has_access: true });
+	await updateUser(user.id, { has_access: true });
 };
 
 const webhookHandlers: Record<string, (event: Stripe.Event) => Promise<void>> =
@@ -144,7 +155,5 @@ export async function POST(req: NextRequest) {
 		const err = error as Error;
 		console.error(`Webhook processing failed: ${err.message}`);
 		return NextResponse.json({ error: err.message }, { status: 400 });
-	} finally {
-		await prisma.$disconnect();
 	}
 }
